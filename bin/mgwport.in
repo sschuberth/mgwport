@@ -1,0 +1,606 @@
+#!/bin/bash
+################################################################################
+#
+# mgwport - MinGW/MSYS packaging application
+# based on cygwport by Yaakov Selkowitz
+#
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011 Yaakov Selkowitz
+# Provided by the Cygwin Ports project <http://sourceware.org/cygwinports/>
+#
+# mgwport is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# mgwport is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with mgwport.  If not, see <http://www.gnu.org/licenses/>.
+#
+################################################################################
+set -e;
+
+
+################################################################################
+#
+# Initialization
+#
+################################################################################
+
+# for regexes, sort, etc.
+export LC_COLLATE=C
+
+# Determine build platform personality
+case $(uname -s) in
+  *MINGW* ) build_t=mingw;;
+  *MSYS*  ) build_t=msys;;
+  *       ) build_t=cross;;
+esac
+
+declare -r  _version=@VERSION@;
+
+declare -r _privlibdir=@pkglibdir@;
+declare -r _privdatadir=@pkgdatadir@;
+declare -r _privclassdir=@mgwclassdir@;
+declare -r _privdocdir=@docdir@;
+declare -r _privgnuconfigdir=@gnuconfigdir@;
+declare -r _sysconfdir=@sysconfdir@;
+
+
+### import defined, pushd, popd
+source ${_privlibdir}/syntax.mgwpart
+###
+
+
+################################################################################
+#
+# Command-line Help
+#
+################################################################################
+
+#****** mgwport/Introduction
+#****
+
+#****** mgwport/Usage
+#  USAGE
+#  See href:mgwport.1.html for command line options.
+#****
+
+### import _show_help, _show_version
+source ${_privlibdir}/help.mgwpart
+###
+
+# Accept --help and --version arguments without specifying a mgwport file
+case ${1} in
+	--help|-h|-\?)
+		__show_help;
+		exit 0;
+		;;
+	--version|-v)
+		__show_version;
+		exit 0;
+		;;
+	--debug)
+		set -x;
+		shift;
+		;;
+	-*)
+		echo "${0}: unknown argument ${1}";
+		__show_help;
+		exit 1;
+		;;
+esac
+
+declare -ar argv=(${0} ${@})
+declare -ir argc=$(( $# + 1 ))
+
+# Show help if no commands are given
+if ! defined argv[1] || ! defined argv[2]
+then
+	__show_help;
+	exit 1;
+fi
+
+
+################################################################################
+#
+# System checks
+#
+################################################################################
+
+#****** mgwport/Configuration
+#****
+
+#****** mgwport/Format
+#****
+
+#****** mgwport/Checks
+#****
+
+### import check_prog and friends
+source ${_privlibdir}/check_funcs.mgwpart
+###
+
+# check now for all mandatory programs
+for _myprog in bzip2 cat chmod cp diff diffstat find grep gzip install \
+               ln mkdir mv patch rm rsync sed sort tar xargs
+do
+	if ! check_prog ${_myprog}
+	then
+		error "${_myprog} is required to run mgwport";
+	fi
+done
+
+unset _myprog;
+
+if check_prog pbzip2
+then
+	readonly _tar_bz2_flag="-I pbzip2 -"
+else
+	# bzip2 is required, no need to check
+	readonly _tar_bz2_flag="-j"
+fi
+
+
+################################################################################
+#
+# Import user settings
+#
+################################################################################
+
+# Values which can be overridden either system-wide or per package
+
+declare    MAKEOPTS="-j$(($(nproc 2>/dev/null) + 1)) ";
+
+# load configuration
+for conf in ${_sysconfdir}/mgwport.conf \
+			"${HOME}/.mgwportrc" \
+			"${HOME}/.mgwport.conf" \
+			"${HOME}/.mgwport/mgwport.conf"
+do
+	if [ -e "${conf}" ]
+	then
+		source "${conf}" || error "could not read ${conf}"
+	fi
+done
+unset conf;
+
+
+################################################################################
+#
+# Function definitions
+#
+################################################################################
+
+#****** mgwport/Downloading
+#****
+
+#****** mgwport/Compiling
+#****
+
+#****** mgwport/Testing
+#****
+
+#****** mgwport/Installing
+#  NOTE
+#  In the context of mgwport, "installing" always means into the DESTDIR $D.
+#  However, the syntax of the convenience functions is as if one were
+#  installing to the system.
+#****
+
+#****** mgwport/Postinstall
+#****
+
+#****** mgwport/Information
+#****
+
+#****** mgwport/Packaging
+#****
+
+#****** mgwport/mgwclasses
+#  DESCRIPTION
+#  * autotools.mgwclass
+#  * cvs.mgwclass
+#  * cross.mgwclass
+#  * git.mgwclass
+#  * svn.mgwclass
+#  * tcl.cygclass
+#  * toolchain.mgwclass
+#  * utils.mgwclass
+#  BUGS
+#  Why do the mgwclasses get listed in reverse order?!?
+#****
+
+### __config_get/set and friends
+source ${_privlibdir}/config_registry.mgwpart
+###
+
+### inherit and friends
+source ${_privlibdir}/inheritance.mgwpart
+###
+
+### fetch and friends
+source ${_privlibdir}/src_fetch.mgwpart
+###
+
+### mirrors list
+source ${_privdatadir}/mirrors
+###
+
+### unpack, mgwpatch, __src_prep and friends
+source ${_privlibdir}/src_prep.mgwpart
+###
+
+### CC/CXX, CFLAGS/CXXFLAGS, etc.
+source ${_privlibdir}/compilers.mgwpart
+###
+
+### lndirs, mgwmake
+source ${_privlibdir}/src_compile.mgwpart
+###
+
+### mgwtest and friends
+source ${_privlibdir}/src_test.mgwpart
+###
+
+### mgwinstall, do*, new*, *into, and friends
+source ${_privlibdir}/src_install.mgwpart
+###
+
+### __src_postinst and friends
+source ${_privlibdir}/src_postinst.mgwpart
+###
+
+### __list_files, __list_deps, __show_info, __show_web
+source ${_privlibdir}/pkg_info.mgwpart
+###
+
+### __pkg_* functions
+source ${_privlibdir}/pkg_pkg.mgwpart
+###
+
+### __finish
+source ${_privlibdir}/pkg_cleanup.mgwpart
+###
+
+# Auto-inherit autotools for backwards compatibility. But we
+# want to allow it to be inherited one more time in order to
+# reset src_compile() when other mgwclasses override it.
+_autotools_MGWCLASS_stage1_=1
+inherit autotools;
+unset _autotools_MGWCLASS_ _autotools_MGWCLASS_stage1_
+
+
+################################################################################
+#
+# Import the .mgwport file
+#
+################################################################################
+
+#****** Format/Globals
+#****
+
+#****d* Globals/P
+#  DESCRIPTION
+#  The package name and version, equivalent to PN-PV.
+#****
+#****d* Globals/PN
+#  DESCRIPTION
+#  The mgw (primary) package name.  Generally, this is the same as the
+#  upstream package name, but need not be.  A common reason for deviating from
+#  the upstream name is to append a version "slot" where multiple versions of
+#  a package are completely parallel installable (e.g. gtk1.2 and gtk2.0, both
+#  from gtk+).  In this case, define ORIG_PN to the upstream package name.
+#****
+#****d* Globals/PV
+#  DESCRIPTION
+#  The upstream package version number.  PV must begin with a digit 0-9, and
+#  subsequent characters can be a digit, letter, dot, or underscore.
+#****
+#****d* Globals/PS
+#  DESCRIPTION
+#  The package subsystem name.  This will be either 'mingw32' or 'msys'.
+#****
+#****d* Globals/PR
+#  DESCRIPTION
+#  The mgw package release number, e.g. the "1" in foo-2.3.4-1.  The first
+#  release of a new version is usually 1, and is incremented if subsequent
+#  releases are made of the same version.  PR must be an integer.
+#****
+#****d* Globals/PVR
+#  DESCRIPTION
+#  The package version and release, equivalent to PV-PR.
+#****
+#****d* Globals/PF
+#  DESCRIPTION
+#  The full package descriptor, equivalent to PN-PV-PR.
+#****
+
+### FIXME: parse name using new tool. set PS appropriately.
+###        implicit subsystem versioning (for msys-)
+
+# argv[1] may or may not include the .mgwport extension
+            PF=${argv[1]##*/}
+declare -r  PF=${PF%.mgwport}
+declare -r  PS=mingw32
+# these must be defined now to be available in SRC_URI
+#
+# PN must begin with letter, may contain hyphens but must be followed by letter
+# PV must begin with digit and may be hyphenated
+# PR must be an integer
+declare -r  PN=${PF%%-[0-9]*};
+declare -r  PR=${PF##*-};
+            PV=$(echo ${PF} | sed -e "s/${PN}\-\(.*\)\-${PR}$/\1/");
+declare -r  P=${PN}-${PV};
+declare -r  PVR=${PV}-${PR};
+declare -ar PVP=(${PV//[-\._]/ });
+declare -r  PV=(${PV} ${PVP[*]});
+declare -r  PV_MAJ=${PV[1]};
+declare -r  PV_MAJ_MIN="${PV[1]}.${PV[2]}";
+
+declare -r  mgwportfile=${PF}.mgwport;
+
+_topdir=${argv[1]%/*};
+
+if [ "x${_topdir}" = "x${argv[1]}" ]
+then
+	if [ -f /usr/src/${mgwportfile} ]
+	then
+		_topdir=/usr/src;
+	else
+		_topdir=.;
+	fi
+fi
+
+declare -r top=$(cd ${_topdir}; pwd);
+unset _topdir;
+
+if [ ! -e ${top}/${mgwportfile} ]
+then
+	error "${mgwportfile} not found.";
+fi
+
+### load .mgwport
+source ${top}/${mgwportfile} || error "could not read ${mgwportfile}"
+###
+
+if defined mgwPORT_DEPEND
+then
+	if ! __version_at_least ${mgwPORT_DEPEND} ${_version}
+	then
+		error "This package requires mgwport ${mgwPORT_DEPEND} or newer";
+	fi
+fi
+
+
+#****v* Globals/RESTRICT
+#****
+for restrict in ${RESTRICT}
+do
+	export _mgwPORT_RESTRICT_${restrict//-/_}_=1
+done
+
+#****v* Information/DESCRIPTION
+#****
+
+#****v* Information/HOMEPAGE
+#****
+
+################################################################################
+#
+# Define package-dependant variables
+#
+################################################################################
+
+declare -r workdir="${top}/${PF}";
+declare -r srcdir="${workdir}/src";
+declare -r origsrcdir="${workdir}/origsrc";
+declare -r configdir="${workdir}/config";
+declare -r logdir="${workdir}/log";
+declare -r patchdir="${workdir}/patch";
+declare -r spkgdir="${workdir}/spkg";
+declare -r distdir="${workdir}/dist";
+
+SRC_DIR=${SRC_DIR:-${ORIG_PN:-${PN}}-${PV}};
+if [ "x${SRC_DIR}" = "x." ]
+then
+	declare -r S=${srcdir};
+else
+	declare -r S=${srcdir}/${SRC_DIR};
+fi
+
+#****d* Globals/S
+#  The source directory.  Build tool regeneration (e.g. mgwautoreconf) occurs
+#  in this directory, but other build steps should occur in B.
+#****
+
+#****d* Globals/B
+#  DESCRIPTION
+#  The build directory.  All configuring and compiling steps should occur in
+#  this directory.
+#****
+
+#****d* Globals/C
+#  DESCRIPTION
+#  The mgw-PATCHES directory where mgw READMEs, setup.hint files,
+#  custom postinstall scripts, and other mgw-specific files are placed
+#  before packaging.
+#****
+
+#****d* Globals/D
+#  DESCRIPTION
+#  The installation staging directory.  All installation and postinstall steps
+#  occur in or into this directory.
+#****
+
+declare -r B="${workdir}/build";
+declare -r D="${workdir}/inst";
+declare -r T="${workdir}/temp";
+
+case "$PS" in
+  mingw32)  declare -r M="${S}/MINGW-PATCHES";;
+  msys)     declare -r M="${S}/MSYS-PATCHES";;
+  *)        error "Unsupported subsystem type: '$PS'";;
+esac
+
+declare -r compilelog="${logdir}/${PF}-compile.log";
+declare -r checklog="${logdir}/${PF}-check.log";
+declare -r installlog="${logdir}/${PF}-install.log";
+declare -r pkglog="${logdir}/${PF}-pkg.log";
+
+if ! defined SRC_URI
+then
+	error "SRC_URI must be defined";
+fi
+
+for _src_uri in ${SRC_URI}
+do
+	_src_uri="${_src_uri%\?*}"
+	_src_orig_pkgs+=" ${_src_uri##*/}";
+done
+readonly _src_orig_pkgs;
+unset _src_uri;
+
+for _patch_uri in ${PATCH_URI}
+do
+	_patch_uri="${_patch_uri%\?*}"
+	_src_orig_patches+=" ${_patch_uri##*/}";
+done
+readonly _src_orig_patches;
+unset _patch_uri;
+
+declare -r mgw_patchfile=${PF}.mgw.patch;
+declare -r src_patchfile=${PF}.src.patch;
+
+declare -ar pkg_name=(${PKG_NAMES:-${PN}});
+declare -r  pkg_count=${#pkg_name[*]};
+
+################################################################################
+#
+# Command processing
+#
+################################################################################
+
+declare -i arg_n=2
+
+# When adding commands here, also add them to cygport-bash-completion
+while (( arg_n < argc ))
+do
+	case ${argv[${arg_n}]} in
+		download|fetch|wget|get)
+			__src_fetch;
+			_status=$?;
+			;;
+		prep|unpack)
+			__stage Preparing;
+			__src_prep;
+			_status=$?;
+			;;
+		compile|build|make)
+			__stage Compiling;
+			__log_init ${compilelog};
+			src_compile 2>&1 | tee -a ${compilelog};
+			_status=$?;
+			;;
+		check|test)
+			__stage Testing;
+			__log_init ${checklog};
+			src_test 2>&1 | tee -a ${checklog};
+			_status=$?;
+			;;
+		inst*)
+			__stage Installing;
+			__log_init ${installlog};
+			(__prepinstalldirs && src_install && __src_postinst) 2>&1 | tee -a ${installlog};
+			_status=$?;
+			;;
+		postinst*)
+			__src_postinst;
+			_status=$?;
+			;;
+		list)
+			__list_files;
+			_status=$?;
+			;;
+		dep*)
+			__list_deps;
+			_status=$?;
+			;;
+		info*)
+			__show_info;
+			_status=$?;
+			;;
+		homepage|web*|www*)
+			__show_web;
+			_status=$?;
+			;;
+		package|pkg)
+			__stage Packaging;
+			__log_init ${pkglog};
+			(__pkg_binpkg && __pkg_pkgcheck && __pkg_srcpkg && __pkg_dist) 2>&1 | tee -a ${pkglog};
+			_status=$?;
+			;;
+		diff|mkdiff|mkpatch)
+			__pkg_diff;
+			_status=$?;
+			;;
+		finish)
+			__finish;
+			_status=$?;
+			;;
+		almostall)
+			__stage Preparing && __src_prep && \
+			__log_init ${compilelog} && \
+			__stage Compiling && src_compile 2>&1 | tee -a ${compilelog} && \
+			__log_init ${installlog} && \
+			__stage Installing && (__prepinstalldirs && src_install && __src_postinst) 2>&1 | tee -a ${installlog} && \
+			__log_init ${pkglog} && \
+			__stage Packaging && (__pkg_binpkg && __pkg_pkgcheck && __pkg_srcpkg && __pkg_dist) 2>&1 | tee -a ${pkglog}
+			_status=$?;
+			;;
+		all)
+			__stage Preparing && __src_prep && \
+			__log_init ${compilelog} && \
+			__stage Compiling && src_compile 2>&1 | tee -a ${compilelog} && \
+			__log_init ${installlog} && \
+			__stage Installing && (__prepinstalldirs && src_install && __src_postinst) 2>&1 | tee -a ${installlog} && \
+			__log_init ${pkglog} && \
+			__stage Packaging && (__pkg_binpkg && __pkg_pkgcheck && __pkg_srcpkg && __pkg_dist) 2>&1 | tee -a ${pkglog} && \
+			__finish;
+			_status=$?;
+			;;
+		help)
+			__show_help;
+			exit 0;
+			;;
+		version)
+			__show_version;
+			exit 0;
+			;;
+		_*)
+			error "unknown command ${argv[${arg_n}]}";
+			exit 1;
+			;;
+		*)
+			if __check_function ${argv[${arg_n}]} && ! __check_function_ro ${argv[${arg_n}]}
+			then
+				${argv[${arg_n}]};
+			else
+				error "unknown command ${argv[${arg_n}]}";
+			fi
+			_status=$?;
+			;;
+	esac
+
+	if (( _status != 0 ))
+	then
+		break;
+	fi
+
+	arg_n+=1;
+done
+
+exit ${_status};

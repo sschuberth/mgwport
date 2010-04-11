@@ -5,10 +5,10 @@ TESTS_ENVIRONMENT = MAKE=$(MAKE) PACKAGE=$(PACKAGE) VERSION=$(VERSION) top_srcdi
 EXTRA_DIST = $(TESTS)
 
 CLEANFILES = \
-	foo-1.2.3-4.cygport \
-	$(PACKAGE)-$(VERSION)-1-src.tar.bz2 \
-	$(PACKAGE)-$(VERSION)-1.tar.bz2 \
-	$(PACKAGE)-$(VERSION)-1.cygport \
+	foo-1.2.3-4.mgwport \
+	$(PACKAGE)-$(VERSION)-1-src.tar.lzma \
+	$(PACKAGE)-$(VERSION)-1.tar.lzma \
+	$(PACKAGE)-$(VERSION)-1.mgwport \
 	$(PACKAGE)-$(VERSION).tar.xz
 
 clean-local:

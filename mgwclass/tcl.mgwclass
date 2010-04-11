@@ -1,0 +1,135 @@
+################################################################################
+#
+# tcl.mgwclass - definitions for installing Tcl modules
+#
+# Part of cygport - Cygwin packaging application
+# Copyright (C) 2007, 2008, 2009, 2010, 2011 Yaakov Selkowitz
+# Provided by the Cygwin Ports project <http://sourceware.org/cygwinports/>
+#
+# cygport is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# cygport is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with cygport.  If not, see <http://www.gnu.org/licenses/>.
+#
+################################################################################
+
+#****h* Mgwclasses/tcl.mgwclass
+#  SYNOPSIS
+#  inherit tcl
+#  DESCRIPTION
+#  Tcl is a general-purpose scripting language used for a variety of purposes.
+#  It supports extensions written in Tcl or C.  Tk is both a Tcl extension and
+#  a GUI toolkit in its own right, which is used in turn by several other
+#  programming languages (including Perl, Python, R, and Ruby) as their
+#  default GUI library.
+#
+#  This mgwclass provides definitions for Tcl extensions and packages embedding
+#  the Tcl language.
+#  REQUIRES
+#  tcl
+#****
+
+check_prog_req tclsh tcl
+
+# this is used for TCL_VERSION
+export ac_cv_c_tclconfig=$(${CC} -print-sysroot)$(__target_prefix)/lib
+if test -f ${ac_cv_c_tclconfig}/tkConfig.sh
+then
+	export ac_cv_c_tkconfig=${ac_cv_c_tclconfig}
+fi
+
+#****d* tcl.mgwclass/TCLSH
+#  DESCRIPTION
+#  Absolute path to the Tcl interpreter.
+#****
+TCLSH=/usr/bin/tclsh
+
+#****d* tcl.mgwclass/TCL_VERSION
+#  DESCRIPTION
+#  The major.minor version of the Tcl interpreter.
+#****
+eval $(grep '^TCL_VERSION=' ${ac_cv_c_tclconfig}/tclConfig.sh)
+
+#****d* tcl.mgwclass/TCL_INCLUDEDIR
+#  DESCRIPTION
+#  Location of the Tcl private headers, necessary when building packages
+#  which expect to build from a Tcl source tree (e.g. Tk).
+#****
+TCL_INCLUDEDIR="/usr/include/tcl${TCL_VERSION}"
+
+#****d* tcl.mgwclass/TCL_LIBDIR
+#  DESCRIPTION
+#  Location of the Tcl standard library.
+#****
+TCL_LIBDIR="/usr/lib/tcl${TCL_VERSION}"
+
+#****d* tcl.mgwclass/TK_INCLUDEDIR
+#  DESCRIPTION
+#  Location of the Tk private headers, necessary when building packages
+#  which expect to build from a Tk source tree.
+#****
+TK_INCLUDEDIR=${TCL_INCLUDEDIR}
+
+#****d* tcl.mgwclass/TK_LIBDIR
+#  DESCRIPTION
+#  Location of the Tk standard library.
+#****
+TK_LIBDIR=${TCL_LIBDIR/tcl/tk}
+
+#****d* tcl.mgwclass/LIBTCL
+#  DESCRIPTION
+#  Link flags for the Tcl C library.
+#****
+LIBTCL="-ltcl${TCL_VERSION}"
+
+#****d* tcl.mgwclass/LIBTK
+#  DESCRIPTION
+#  Link flags for the Tk and Tcl C libraries.
+#****
+LIBTK="-ltk${TCL_VERSION} ${LIBTCL}"
+
+
+__tcl_sys_version() {
+	local tclsys
+
+	# FIXME: do binutils/gcc really support all these?
+	case ${CHOST} in
+	*-ibm-aix*)         tclsys="AIX-x" ;;
+	*-*-beos*)          tclsys="BeOS" ;;
+	*-*-bsdi*)          tclsys="BSD/OS-4.x" ;;
+	*-*-cygwin*)        tclsys="CYGWIN_NT" ;;
+	*-*-darwin*)        tclsys="Darwin-x" ;;
+	*-*-freebsd*)       tclsys="FreeBSD-x" ;;
+	*-*-haiku*)         tclsys="Haiku" ;;
+	*-*-hpux*)          tclsys="HP-UX-x.11.z" ;;
+	*64-*-irix*)        tclsys="IRIX64-6.x" ;;
+	*-*-irix*)          tclsys="IRIX-6.x" ;;
+	*-*-linux*)         tclsys="Linux" ;;
+	*-*-lynxos*)        tclsys="Lynx" ;;
+	*-*-netbsd*)        tclsys="NetBSD-x" ;;
+	*-*-openbsd*)       tclsys="OpenBSD-x" ;;
+	*-ibm-openedition)  tclsys="OS/390-x" ;;
+	*-*-osf*)           tclsys="OSF1-Vx" ;;
+	*-*-nto-qnx*)       tclsys="QNX-6" ;;
+	*-*-sco*)           tclsys="SCO_SV-3.2" ;;
+	*-*-solaris*)       tclsys="SunOS-5" ;;
+	*-*-mingw*)         tclsys="windows" ;;
+	# must be last to avoid false positives from *-*-KERNEL-gnu
+	*-*-gnu*)           tclsys="GNU" ;;
+	*)	error "Host ${CHOST} is not supported by Tcl" ;;
+	esac
+
+	echo -n ${tclsys}
+}
+
+export tcl_cv_sys_version=$(__tcl_sys_version)
+
+readonly -f __tcl_sys_version

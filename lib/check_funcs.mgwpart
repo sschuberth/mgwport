@@ -1,0 +1,183 @@
+################################################################################
+#
+# check_funcs.cygpart - cygport check_prog* and sanity check functions
+#
+# Copyright (C) 2006, 2007, 2008, 2009, 2010 Yaakov Selkowitz
+# Provided by the Cygwin Ports project <http://sourceware.org/cygwinports/>
+#
+# cygport is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# cygport is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with cygport.  If not, see <http://www.gnu.org/licenses/>.
+#
+################################################################################
+
+#****f* Checks/check_prog
+#  SYNOPSIS
+#  check_prog PROGRAM [PROGRAM2] ...
+#  DESCRIPTION
+#  Checks for the presence of the given program(s) in PATH.  Returns TRUE
+#  if all programs are present, else FALSE.
+#****
+check_prog() {
+	local _prog;
+
+	(( $# < 1 )) && return 1;
+
+	for _prog
+	do
+		if ! hash ${_prog} &> /dev/null
+		then
+			return 1;
+		fi
+	done
+
+	return 0;
+}
+
+#****f* Checks/check_prog_req
+#  SYNOPSIS
+#  check_prog_req PROGRAM [PACKAGE]
+#  DESCRIPTION
+#  Check that the given required program is present in PATH.  If not, call
+#  error() indicating which package contains the program that needs to be
+#  installed.  If only the program name is given, the package is assumed
+#  to be eponymous.
+#****
+check_prog_req() {
+	local prog=${1};
+	local pkg=${2:-${1}};
+
+	if ! check_prog ${prog}
+	then
+		error "${pkg} is required to build this package";
+	fi
+
+	return 0;
+}
+
+#****f* Checks/check_tool
+#  SYNOPSIS
+#  check_tool TOOL [TOOL] ...
+#  DESCRIPTION
+#  Checks for the presence of the given host compiler tool(s) in PATH.
+#  Returns TRUE if all tools are present, else FALSE.
+#****
+check_tool() {
+	local _prog;
+
+	(( $# < 1 )) && return 1;
+
+	for _prog
+	do
+		if ! hash ${CHOST}-${_prog} &> /dev/null
+		then
+			if [ ${CHOST} = ${CBUILD} ] && hash ${_prog} &> /dev/null
+			then
+				:
+			else
+				return 1;
+			fi
+		fi
+	done
+
+	return 0;
+}
+
+#****f* Checks/check_target_tool
+#  SYNOPSIS
+#  check_target_tool TOOL [TOOL] ...
+#  DESCRIPTION
+#  Checks for the presence of the given target compiler tool(s) in PATH.
+#  Returns TRUE if all tools are present, else FALSE.
+#****
+check_target_tool() {
+	local _prog;
+
+	(( $# < 1 )) && return 1;
+
+	for _prog
+	do
+		if ! hash ${CTARGET}-${_prog} &> /dev/null
+		then
+			if [ ${CTARGET} = ${CBUILD} ] && hash ${_prog} &> /dev/null
+			then
+				:
+			else
+				return 1;
+			fi
+		fi
+	done
+
+	return 0;
+}
+
+__check_function() {
+	(( $# < 1 )) && return 1;
+	declare -F ${1} &> /dev/null
+	return $?
+}
+
+__check_function_ro() {
+	(( $# < 1 )) && return 1;
+	declare -Fr | grep -q " ${1}$"
+	return $?
+}
+
+__check_unstable() {
+	local unstable_var=MGWPORT_USE_UNSTABLE_API
+
+	if defined ${unstable_var}
+	then
+		"${@}"
+		return $?
+	else
+		warning "The ${1} API is not yet stable and is subject to change"
+		warning "You must define ${unstable_var} in order to use it"
+	fi
+}
+
+__version_at_least() {
+	local want_v=${1%-*};
+	local want_r=${1#*-};
+	local have_v=${2%-*};
+	local have_r=${2#*-};
+	local -a want_va=(${want_v//[-\._]/ });
+	local -a have_va=(${have_v//[-\._]/ });
+	local -i n=0;
+
+	while defined want_ver[${n}]
+	do
+		if (( want_ver[n] < ${have_ver[${n}]:-0} ))
+		then
+			return 0;
+		elif (( want_ver[n] > ${have_ver[${n}]:-0} ))
+		then
+			return 1;
+		else
+			n+=1;
+			continue;
+		fi
+	done
+
+	if [ "${want_r}" != "${want_v}" ]
+	then
+		if (( want_r > have_r ))
+		then
+			return 1;
+		fi
+	fi
+
+	return 0;	# equal
+}
+
+readonly -f check_prog check_prog_req __check_function __check_function_ro \
+            __check_unstable __version_at_least

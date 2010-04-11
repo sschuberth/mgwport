@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+   <mime-type type="application/x-mgwport">
+     <sub-class-of type="application/x-shellscript"/>
+     <comment>Mgwport package script</comment>
+     <glob pattern="*.mgwport"/>
+     <glob pattern="*.msysport"/>
+   </mime-type>
+   <mime-type type="application/x-mgwport-component">
+     <sub-class-of type="application/x-shellscript"/>
+     <comment>Mgwport program component</comment>
+     <glob pattern="*.mgwpart"/>
+     <glob pattern="*.mgwclass"/>
+   </mime-type>
+</mime-info>

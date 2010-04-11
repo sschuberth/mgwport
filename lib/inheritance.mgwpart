@@ -1,0 +1,75 @@
+################################################################################
+#
+# inheritance.cygpart - cygport cygclass inheritance functions
+#
+# Copyright (C) 2006, 2007, 2008, 2009, 2010 Yaakov Selkowitz
+# Provided by the Cygwin Ports project <http://sourceware.org/cygwinports/>
+#
+# cygport is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# cygport is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with cygport.  If not, see <http://www.gnu.org/licenses/>.
+#
+################################################################################
+
+#****f* Syntax/inherit
+#  SYNOPSIS
+#  inherit MGWCLASS [MGWCLASS] ...
+#  DESCRIPTION
+#  Imports the given mgwclass(es) (without the .mgwclass suffix) into the build.
+#****
+inherit() {
+	local class;
+	local classname;
+
+	for class
+	do
+		classname=${class%.mgwclass}
+
+		if [ ! -f ${_privclassdir}/${classname}.mgwclass ]
+		then
+			error "inherit: unknown mgwclass ${class}";
+		fi
+
+		if ! defined _${classname//[-\.]/_}_MGWCLASS_
+		then
+			export _${classname//[-\.]/_}_MGWCLASS_=1
+			source ${_privclassdir}/${classname}.mgwclass || error "inherit ${classname} failed"
+		fi
+	done
+}
+
+#****f* Syntax/inherited
+#  SYNOPSIS
+#  inherited MGWCLASS [MGWCLASS] ...
+#  DESCRIPTION
+#  Check whether the given mgwclass(es) (without the .mgwclass suffix) have
+#  already been inherit()ed.  Returns TRUE if all given mgwclasses have been
+#  inherit()ed, otherwise FALSE.
+#****
+inherited() {
+	local class;
+	local classname;
+
+	for class
+	do
+		classname=${class%.mgwclass};
+
+		if ! defined _${classname//[-\.]/_}_MGWCLASS_
+		then
+			return 1;
+		fi
+	done
+
+	return 0;
+}
+
+readonly -f inherit inherited

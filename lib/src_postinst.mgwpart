@@ -1,0 +1,895 @@
+################################################################################
+#
+# src_postinst.cygpart - cygport source post-installation functions
+#
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011 Yaakov Selkowitz
+# Provided by the Cygwin Ports project <http://sourceware.org/cygwinports/>
+#
+# cygport is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# cygport is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with cygport.  If not, see <http://www.gnu.org/licenses/>.
+#
+################################################################################
+
+# these are called conditionally by __prepetc
+__prep_fonts_dir() {
+	fontsdir=/usr/share/fonts
+
+	find ${D}${fontsdir} -name '*.pcf' -exec gzip -q '{}' +
+
+	dodir /etc/postinstall
+
+	for d in $(find ${D}${fontsdir}/ -mindepth 1 -type d)
+	do
+		fonttype=${d#${D}${fontsdir}/}
+		fontsubdir=${fontsdir}/${fonttype}
+
+		case ${fonttype} in
+		encodings|encodings/large|util) ;;
+		*)
+			rm -f ${D}${fontsubdir}/encodings.dir ${D}${fontsubdir}/fonts.{dir,scale}
+
+			cat >> ${D}/etc/postinstall/${PN}.sh <<-_EOF
+				/usr/bin/rm -f ${fontsubdir}/encodings.dir ${fontsubdir}/fonts.{dir,scale}
+				/usr/bin/mkfontscale ${fontsubdir} || /usr/bin/rm -f ${fontsubdir}/fonts.scale
+				/usr/bin/mkfontdir -e ${fontsdir}/encodings -e ${fontsdir}/encodings/large ${fontsubdir} || /usr/bin/rm -f ${fontsubdir}/{encodings,fonts}.dir
+				/usr/bin/fc-cache -f ${fontsubdir}
+
+			_EOF
+		;;
+		esac
+	done
+}
+
+__prep_freedesktop_mime() {
+	local _already_updated_mime_db
+
+	# Freedesktop.org Desktop Menu files with MimeType declarations
+	if [ -d ${D}/usr/share/applications ]
+	then
+		if [ -n "$(grep -lr MimeType ${D}/usr/share/applications)" ]
+		then
+			rm -f ${D}/usr/share/applications/mimeinfo.cache
+			_already_updated_mime_db=1
+			dodir /etc/postinstall
+			cat >> ${D}/etc/postinstall/${PN}.sh <<-_EOF
+				if [ -x /usr/bin/update-desktop-database ]
+				then
+				    /usr/bin/update-desktop-database
+				fi
+				if [ -x /usr/bin/update-mime-database ]
+				then
+				    /usr/bin/update-mime-database /usr/share/mime
+				fi
+
+			_EOF
+		fi
+	fi
+
+	# Freedesktop.org Shared Mime types
+	if [ -d ${D}/usr/share/mime ]
+	then
+		# make sure system-generated files aren't clobbered
+		find ${D}/usr/share/mime/ -maxdepth 1 -type f -delete
+
+		if ! defined _already_updated_mime_db
+		then
+			dodir /etc/postinstall
+			cat >> ${D}/etc/postinstall/${PN}.sh <<-_EOF
+				if [ -x /usr/bin/update-mime-database ]
+				then
+				    /usr/bin/update-mime-database /usr/share/mime
+				fi
+
+			_EOF
+		fi
+	fi
+}
+
+__prep_gconf_schemas() {
+	dodir /etc/postinstall /etc/preremove
+
+	cat >> ${D}/etc/postinstall/${PN}.sh <<-_EOF
+		export GCONF_CONFIG_SOURCE="$(gconftool-2 --get-default-source)"
+	_EOF
+
+	cat >> ${D}/etc/preremove/${PN}.sh <<-_EOF
+		export GCONF_CONFIG_SOURCE="$(gconftool-2 --get-default-source)"
+	_EOF
+
+	for schema in ${D}/etc/gconf/schemas/*.schemas
+	do
+		cat >> ${D}/etc/postinstall/${PN}.sh <<-_EOF
+			/usr/bin/gconftool-2 --makefile-install-rule /etc/gconf/schemas/${schema##*/} > /dev/null 2>&1
+		_EOF
+
+		cat >> ${D}/etc/preremove/${PN}.sh <<-_EOF
+			/usr/bin/gconftool-2 --makefile-uninstall-rule /etc/gconf/schemas/${schema##*/} > /dev/null 2>&1
+		_EOF
+	done
+
+	echo >> ${D}/etc/postinstall/${PN}.sh
+	echo >> ${D}/etc/preremove/${PN}.sh
+}
+
+__prep_gsettings_schemas() {
+	dodir /etc/postinstall
+	cat >> ${D}/etc/postinstall/${PN}.sh <<-_EOF
+		/usr/bin/glib-compile-schemas /usr/share/glib-2.0/schemas
+
+	_EOF
+}
+
+__prep_gio_modules() {
+	dodir /etc/postinstall
+	cat >> ${D}/etc/postinstall/${PN}.sh <<-_EOF
+		if [ -x /usr/bin/gio-querymodules ]
+		then
+		    /usr/bin/gio-querymodules /usr/lib/gio/modules
+		fi
+
+		_EOF
+}
+
+__prep_gdk_pixbuf_modules() {
+	dodir /etc/postinstall
+	cat >> ${D}/etc/postinstall/${PN}.sh <<-_EOF
+		if [ -x /usr/bin/gdk-pixbuf-query-loaders ]
+		then
+		    /usr/bin/gdk-pixbuf-query-loaders --update-cache
+		fi
+
+		_EOF
+}
+
+__prep_gtk2_modules() {
+	# necessary for postinstalling gtk2 itself
+	export PKG_CONFIG_PATH="${B}:${PKG_CONFIG_PATH}"
+	local gtk_api=$(pkg-config --variable=gtk_binary_version gtk+-x11-2.0)
+	local gdkp_moduledir
+
+	# Gdk-Pixbuf loaders
+	if [ -d ${D}/usr/lib/gtk-2.0/${gtk_api}/loaders ]
+	then
+		if $(pkg-config --atleast-version 2.22 gdk-pixbuf-2.0)
+		then
+			gdkp_moduledir=/usr/lib/gdk-pixbuf-2.0/$(pkg-config --variable=gdk_pixbuf_binary_version gdk-pixbuf-2.0)/loaders
+			dodir ${gdkp_moduledir}
+			mv ${D}/usr/lib/gtk-2.0/${gtk_api}/loaders/* ${D}${gdkp_moduledir}/
+			__prep_gdk_pixbuf_modules
+		else
+			dodir /etc/postinstall
+			cat >> ${D}/etc/postinstall/${PN}.sh <<-_EOF
+				if [ -x /usr/bin/gdk-pixbuf-query-loaders.exe ]
+				then
+				    /usr/bin/mkdir -p /etc/gtk-2.0
+				    /usr/bin/chmod 777 /etc/gtk-2.0
+				    /usr/bin/gdk-pixbuf-query-loaders > /etc/gtk-2.0/gdk-pixbuf.loaders
+				fi
+
+				_EOF
+		fi
+	fi
+
+	# GTK Immodules
+	if [ -d ${D}/usr/lib/gtk-2.0/${gtk_api}/immodules ]
+	then
+		dodir /etc/postinstall
+		cat >> ${D}/etc/postinstall/${PN}.sh <<-_EOF
+			if [ -x /usr/bin/gtk-query-immodules-2.0.exe ]
+			then
+			    /usr/bin/mkdir -p /etc/gtk-2.0
+			    /usr/bin/chmod 777 /etc/gtk-2.0
+			    /usr/bin/gtk-query-immodules-2.0 > /etc/gtk-2.0/gtk.immodules
+			fi
+
+		_EOF
+	fi
+}
+
+__prep_gtk3_modules() {
+	# necessary for postinstalling gtk3 itself
+	export PKG_CONFIG_PATH="${B}:${PKG_CONFIG_PATH}"
+	local gtk_api=$(pkg-config --variable=gtk_binary_version gtk+-x11-3.0)
+
+	# GTK Immodules
+	if [ -d ${D}/usr/lib/gtk-3.0/${gtk_api}/immodules ]
+	then
+		dodir /etc/postinstall
+		cat >> ${D}/etc/postinstall/${PN}.sh <<-_EOF
+			if [ -x /usr/bin/gtk-query-immodules-3.0 ]
+			then
+			    /usr/bin/gtk-query-immodules-3.0 --update-cache
+			fi
+
+			_EOF
+	fi
+}
+
+__prep_gtk_icon_theme() {
+	local icondir
+
+	for icondir in $(find ${D}/usr/share/icons -mindepth 1 -maxdepth 1 -type d)
+	do
+		if [ -f ${icondir}/index.theme -o -f ${icondir#${D}}/index.theme ]
+		then
+			dodir /etc/postinstall
+			cat >> ${D}/etc/postinstall/${PN}.sh <<-_EOF
+				if [ -x /usr/bin/gtk-update-icon-cache.exe ]
+				then
+				    /usr/bin/gtk-update-icon-cache --force ${icondir#${D}}
+				fi
+
+			_EOF
+		fi
+	done
+}
+# end of conditional __prepetc helpers
+
+
+# installs standard docs, html docs, and MinGW/MSYS README
+__prepdoc() {
+	local html;
+	local -i n=1;
+	local pkg_hint;
+	local default_docs="\
+		ANNOUNCE ANNOUNCEMENTS AUTHOR AUTHORS \
+		BUG-REPORTS BUGS \
+		CHANGES Changes ChangeLog CONTRIBUTORS COPYING COPYING-DOCS COPYING.LIB COPYRIGHT CREDITS \
+		FAQ GPL HACKING HISTORY HOW-TO-CONTRIBUTE KNOWNBUG \
+		LEGAL LICENCE LICENSE MAINTAINERS NEWS NOTES NOTICE \
+		PROGLIST README THANKS TODO WHATSNEW";
+
+	cd ${S};
+
+	if defined _MGWPORT_RESTRICT_postinst_doc_
+	then
+		inform "Skipping package doc installation per request";
+	else
+		unset _docinto_dir;
+		dodoc ${default_docs} ${DOCS};
+
+		for html in ${HTMLDOCS}
+		do
+			docinto html;
+			dodoc ${html};
+		done
+	fi
+
+	if [ -e ${M}/README ]
+	then
+		insinto /usr/share/doc/MinGW;
+		newins ${M}/README ${PN}.README;
+	elif [ -e ${M}/${PN}.README ]
+	then
+		insinto /usr/share/doc/MinGW;
+		doins ${M}/${PN}.README;
+	else
+		warning "MinGW README is missing"
+	fi
+
+	pkg_hint=(${PKG_HINTS})
+
+	while defined pkg_name[${n}]
+	do
+		if [ -f ${M}/${pkg_name[${n}]}.README ]
+		then
+			insinto /usr/share/doc/MinGW;
+			doins ${M}/${pkg_name[${n}]}.README;
+		elif defined pkg_hint[${n}]
+		then
+			if [ -f ${M}/${pkg_hint[${n}]}.README ]
+			then
+				insinto /usr/share/doc/MinGW;
+				doins ${M}/${pkg_hint[${n}]}.README
+			fi
+		fi
+
+		n+=1;
+	done
+}
+
+# creates and installs postinstall, preremove, and profile.d scripts
+__prepetc() {
+	local d;
+	local f;
+	local -i n;
+	local s;
+
+	if inherited cross
+	then
+		# postinst/prerm does not apply to cross-compiles
+		return
+	fi
+
+	for s in postinstall preremove
+	do
+		if [ -f ${M}/${s}.sh -a -f ${M}/${PN}.${s} ]
+		then
+			error "Only one of ${s}.sh and ${PN}.${s} can exist";
+		fi
+
+		for f in ${s}.sh ${PN}.${s}
+		do
+			if [ -f ${M}/${f} ]
+			then
+				dodir /etc/${s};
+				cat >> ${D}/etc/${s}/${PN}.sh < ${M}/${f};
+			fi
+		done
+
+		n=1;
+		while [ -n "${pkg_name[${n}]}" ]
+		do
+			if [ -f ${M}/${pkg_name[${n}]}.${s} ]
+			then
+				dodir /etc/${s};
+				cat >> ${D}/etc/${s}/${pkg_name[${n}]}.sh < ${M}/${pkg_name[${n}]}.${s};
+			fi
+			n+=1
+		done
+	done
+
+	if [ -f ${M}/profile.d.sh ]
+	then
+		exeinto /etc/profile.d;
+		newexe ${M}/profile.d.sh ${PN}.sh;
+	fi
+
+	if [ -f ${M}/profile.d.csh ]
+	then
+		exeinto /etc/profile.d;
+		newexe ${M}/profile.d.csh ${PN}.csh;
+	fi
+
+	# System fonts
+	if [ -d ${D}/usr/share/fonts ]
+	then
+		__prep_fonts_dir || error "Fonts postinstall failed"
+	fi
+
+	# GIO modules
+	if [ -d ${D}/usr/lib/gio/modules ]
+	then
+		__prep_gio_modules || error "GIO modules postinstall failed"
+	fi
+
+	# GdkPixbuf modules
+	if [ -d ${D}/usr/lib/gdk-pixbuf-2.0 ]
+	then
+		__prep_gdk_pixbuf_modules || error "GdkPixbuf modules postinstall failed"
+	fi
+
+	# GTK+ 2.x modules
+	if [ -d ${D}/usr/share/icons ]
+	then
+		__prep_gtk_icon_theme || error "GTK+ icon theme postinstall failed"
+	fi
+
+	# GTK+ 2.x modules
+	if [ -d ${D}/usr/lib/gtk-2.0 ]
+	then
+		__prep_gtk2_modules || error "GTK+ modules postinstall failed"
+	fi
+
+	# GTK+ 3.x modules
+	if [ -d ${D}/usr/lib/gtk-3.0 ]
+	then
+		__prep_gtk3_modules || error "GTK+ modules postinstall failed"
+	fi
+
+	# GConf schemas
+	if [ -d ${D}/etc/gconf/schemas ] && ! defined _MGWPORT_RESTRICT_postinst_gconf_
+	then
+		__prep_gconf_schemas || error "GConf schemas postinstall failed"
+	fi
+
+	# GSettings schemas
+	if [ -d ${D}/usr/share/glib-2.0/schemas ]
+	then
+		__prep_gsettings_schemas || error "GSettings schemas postinstall failed"
+	fi
+
+	# Freedesktop.org Shared Mime Info
+	if [ -d ${D}/usr/share/applications -o -d ${D}/usr/share/mime ]
+	then
+		__prep_freedesktop_mime || error "Shared Mime Info postinstall failed"
+	fi
+
+	for d in /etc/postinstall /etc/preremove
+	do
+		if [ -d ${D}${d} ]
+		then
+			find ${D}${d} -type f -exec chmod 0755 '{}' +;
+		fi
+	done
+}
+
+__prepman() {
+	local man manlink manpage;
+
+	if [ -d ${D}/usr/man ]
+	then
+		inform "Moving /usr/man to /usr/share/man...";
+		dodir /usr/share/man
+		# just in case there is already /usr/share/man, e.g. after doman()
+		cp -r ${D}/usr/man/* ${D}/usr/share/man/
+		rm -fr ${D}/usr/man/
+	fi
+
+	if [ -d ${D}$(__host_prefix)/share/man ]
+	then
+		echo "Compressing man pages:";
+
+		# Since prior to 1.7, files could not ordinarly contain ':', man
+		# and perl were patched to substitute '.' for '::'. However,
+		# sometimes (e.g. gtk2-perl) man pages created with '::', and
+		# with 1.7 it works OOTB, but man is still patched and hence
+		# won't find these.
+		for man in $(find ${D}$(__host_prefix)/share/man -name '*::*')
+		do
+			mv ${man} ${man//::/.}
+		done
+
+		for manlink in $(find ${D}$(__host_prefix)/share/man -type l)
+		do
+			manref=$(readlink ${manlink})
+			manref=${manref##*/};
+			rm -f ${manlink};
+			echo ".so ${manref%.gz}" > ${manlink%.gz};
+		done
+
+		for manpage in $(find ${D}$(__host_prefix)/share/man -type f ! -name '*.gz' ! -name '*.bz2' ! -name '*.lzma')
+		do
+			echo "        ${manpage##*/}";
+			gzip -q ${manpage};
+		done
+	fi
+}
+
+__prepinfo() {
+	local infopage;
+
+	if [ -d ${D}/usr/info ]
+	then
+		inform "Moving /usr/info to /usr/share/info...";
+		dodir /usr/share/info
+		# just in case there is already /usr/share/info
+		cp -r ${D}/usr/info/* ${D}/usr/share/info/
+		rm -fr ${D}/usr/info/
+	fi
+
+	if [ -d ${D}$(__host_prefix)/share/info ]
+	then
+		rm -f ${D}$(__host_prefix)/share/info/dir
+
+		echo "Compressing info pages:";
+
+		for infopage in $(find ${D}$(__host_prefix)/share/info -type f -name '*.info*' ! -name '*.gz' ! -name '*.bz2')
+		do
+			echo "        ${infopage##*/}";
+			gzip -q ${infopage};
+		done
+	fi
+}
+
+__prepvargames() {
+	local f;
+
+	if inherited cross
+	then
+		# postinst/prerm does not apply to cross-compiles
+		return
+	fi
+
+	if [ -d ${D}/var/games ]
+	then
+		for f in $(find ${D}/var/games -type f)
+		do
+			make_etc_defaults ${f#${D}};
+		done
+	fi
+}
+
+# remove empty directories in D
+# if empty directory must remain, call keepdir() in src_install()
+__prep_empty_dirs() {
+	local d n;
+
+	if defined KEEPDIRS
+	then
+		keepdir ${KEEPDIRS}
+	fi
+
+	# PTC if you find a package deeper than 20 (even perl mods are < 15)
+	for (( n=20; n >= 1; n-- ))
+	do
+		for d in $(find ${D} -mindepth ${n} -type d -empty)
+		do
+			inform "Removing empty directory: ${d#${D}}";
+			rmdir ${d};
+		done
+	done
+}
+
+__prepstrip() {
+	local exe;
+	local all_exes;
+	local strip;
+
+	if defined _MGWPORT_RESTRICT_strip_
+	then
+		inform "Skipping strip step per request.";
+		return 0;
+	fi
+
+	cd ${D};
+
+	echo "Stripping executables:";
+
+	# *.so: Apache2 modules, OCaml stublibs, Ruby modules
+	# *.oct: Octave modules
+	# *.cmxs: OCaml natdynlink modules: http://gallium.inria.fr/~frisch/ndl.txt
+	all_exes=$(find * -type f -a \( -name '*.dll' -o -name '*.exe' -o -name '*.so' -o -name '*.so.*' -o -name '*.oct' -o -name '*.cmxs' \))
+	# could be .exe from non-automake Makefile which install(1) didn't fix
+	all_exes+=" "$(find * -type f -executable ! -name '*.*')
+
+	for exe in ${all_exes}
+	do
+		# assure this is actually a binary object
+		if check_prog ${CTARGET}-strip && ${CTARGET}-size -f ${exe} &>/dev/null
+		then
+			# for cross-compiled libs, cross-GCC target libs,
+			# or non-cross packages built on non-Cygwin systems
+			strip="${CTARGET}-strip"
+		elif check_prog ${CHOST}-strip && ${CHOST}-size -f ${exe} &>/dev/null
+		then
+			# for cross-compilers built on non-Cygwin systems
+			strip="${CHOST}-strip"
+		elif size -f ${exe} &>/dev/null
+		then
+			strip="strip"
+		else
+			# sometimes .exe will be appended where it does not belong
+			case ${exe} in *.exe)
+				if [ $(head -c 2 ${exe}) = "#!" ]
+				then
+					mv ${exe} ${exe%.exe}
+				fi
+			esac
+
+			continue
+		fi
+
+		# OCaml bytecode must not be stripped
+		# Magic number is at end of file:
+		# http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=256900#74
+		# http://cygwin.com/ml/cygwin-apps/2010-10/msg00057.html
+		case $(tail -c 12 ${exe}) in
+			Caml1999X0[0-9][0-9])  continue ;;
+		esac
+
+		# Mono assemblies must not be stripped, but remove .mdb debug symbols,
+		# and make them non-executable so they're not launched by MS .NET
+		if ${OBJDUMP} -p ${exe} 2>&1 | grep -q "DLL Name: mscoree.dll"
+		then
+			chmod 0644 ${exe}
+			rm -f ${exe}.mdb
+			continue
+		fi
+
+		# check for .exe from non-automake Makefile which install(1) didn't fix
+		# strip(1) used to take care of this, but not anymore
+		case ${CHOST} in
+		*-*-cygwin*|*-*-mingw*|*-*-msys*)
+			case ${exe##*/} in
+				*.*) ;;
+				*)	mv ${exe} ${exe}.exe
+					exe+=.exe ;;
+			esac
+			;;
+		esac
+
+		echo "        ${exe}";
+		chmod 0755 ${exe};
+		${strip} ${exe};
+	done
+}
+
+__prepuac() {
+	local exe exename;
+
+	# only Windows-hosted binaries need to deal with UAC
+	case ${CHOST} in
+		*-*-cygwin*|*-*-mingw*|*-*-msys*) ;;
+		*)	return ;;
+	esac
+
+	cd ${D};
+
+	echo "Preparing executables for UAC:";
+
+	for exe in $(find * -type f -executable -a \( -name '*instal*.exe' -o -name '*patch*.exe' -o -name '*setup*.exe' -o -name '*update*.exe' \))
+	do
+		exename=${exe##*/};
+
+		# Mono assemblies may already include .manifest files.
+		if [ ! -e ${exe}.manifest ]
+		then
+			echo "        ${exe}";
+			sed -e "s|@PKGNAME@|${PN//.}|" \
+				-e "s|@APPNAME@|${exename%.exe}|" \
+				${_privdatadir}/uac-manifest.in > ${exe}.manifest
+			chmod +x ${exe}.manifest
+		fi
+	done
+}
+
+__prep_symlinks() {
+	local l l_src
+
+	echo "Fixing symlinks:"
+
+	for l in $(find ${D}/ -type l)
+	do
+		l_src=$(readlink ${l})
+
+		# avoid .exe suffix in symlinks
+		# http://cygwin.com/ml/cygwin-apps/2007-04/msg00065.html
+		case ${CHOST}:${l} in
+			*-*-cygwin*:*.exe)
+				mv ${l} ${l%.exe};
+				l=${l%.exe};
+				;;
+		esac
+
+		case ${l_src} in
+			${l%/*}/${l_src##*/})
+				echo "        ${l#${D}}";
+				rm -f ${l};
+				dosym ${l_src##*/} ${l#${D}};
+				;;
+			${D}/*)
+				echo "        ${l#${D}}";
+				rm -f ${l};
+				dosym ${l_src#${D}} ${l#${D}};
+				;;
+			${workdir}/*)
+				echo "        ${l#${D}}";
+				rm -f ${l};
+				cp -LR ${l_src} ${l};
+				;;
+			/*)
+				if [ ! -e ${D}${l_src} ] && [ ! -e ${l_src} ]
+				then
+					warning "symlink ${l#${D}} points to nonexistant ${l_src}";
+					continue
+				fi
+
+				# Some systems do not support symlinks
+				case ${CHOST} in
+				*-*-mingw*|*-*-msys*|*-*-msdos*)
+					echo "        ${l#${D}}";
+					rm -f ${l};
+					cp -LR ${l_src} ${l};
+					;;
+				esac
+				;;
+			*)
+				if [ ! -e ${l%/*}/${l_src} ]
+				then
+					warning "symlink ${l#${D}} points to nonexistant ${l_src}";
+					continue
+				fi
+
+				# Some systems do not support symlinks
+				case ${CHOST} in
+				*-*-mingw*|*-*-msys*|*-*-msdos*)
+					echo "        ${l#${D}}";
+					rm -f ${l};
+					cp -LR ${l%/*}/${l_src} ${l};
+					;;
+				esac
+				;;
+		esac
+	done
+}
+
+__prep_libtool_modules() {
+	local ltlibs ltlibdir ltlibname ltversion
+	local dlname origdlname library_names old_library inherited_linker_flags \
+	      dependency_libs weak_library_names current age revision \
+		  installed shouldnotlink dlopen dlpreopen libdir rep_requires
+
+	pushd ${D}
+
+	ltlibs="$(find * -name '*.la')"
+
+	if ! defined ltlibs
+	then
+		# nothing to do
+		return 0
+	fi
+
+	echo "Fixing libtool modules:"
+
+	ltversion="$(grep '^# libtool (GNU' /usr/bin/libtool | cut -d ' ' -f 2-)"
+
+	for lib_la in ${ltlibs}
+	do
+		# check that the file is actually a libtool library
+		# e.g. xmodmap.la, where 'la' is a language code
+		if ! grep -q "libtool library file" ${lib_la}
+		then
+			continue
+		fi
+
+		source ${lib_la}
+
+		ltlibdir=${lib_la%/*}
+
+		# check that all library members were installed
+		for l in dlname library_names old_library
+		do
+			if defined ${l}
+			then
+				# on ELF platforms, there are multiple library_names
+				for il in ${!l}
+				do
+					if [ ! -f ${ltlibdir}/${il} ]
+					then
+						error "${il} was not installed"
+					fi
+				done
+			fi
+		done
+
+		if [ "x${shouldnotlink}" != "xyes" ]
+		then
+			if [ "x${dlname}" = "x" ]
+			then
+				# static-only library, hopefully for good reason...
+				continue
+			fi
+
+			# would otherwise be CHOST, but gcc ships $target libraries
+			case ${CTARGET} in
+			*-*-cygwin*|*-*-mingw*|*-*-msys*)
+				if test ${CTARGET} != ${CHOST} # cross-compiler, use sysroot
+				then
+					dodir /usr/${CTARGET}/sys-root/$(__target_prefix)/bin
+					mv ${ltlibdir}/${dlname} ${D}/usr/${CTARGET}/sys-root/$(__target_prefix)/bin/
+				else
+					origdlname=${dlname}
+
+					while [ $(readlink -f ${ltlibdir}/${dlname%/bin/*}) != ${D}$(__host_prefix) ]
+					do
+						dlname=../${dlname}
+					done
+
+					if [ ${dlname} != ${origdlname} ]
+					then
+						pushd ${ltlibdir}
+						mkdir -p ${dlname%/*}
+						mv ${origdlname} ${dlname}
+						popd
+						echo "        ${lib_la}"
+						sed -i -e "s|^\(dlname=\).*|\1'${dlname}'|" ${lib_la}
+					fi
+				fi
+				;;
+			esac
+
+			# The rest only applies if shouldnotlink=yes (-module)
+			continue
+		fi
+
+		echo "        ${lib_la}"
+
+		ltlibname=${lib_la##*/}
+		ltlibname=${ltlibname%.la}
+
+		if [ "x${dlname}" = "x" ]
+		then
+			error "${ltlibname}.la dynamic module was not built"
+		fi
+
+		# warn if -avoid-version was not used with -module
+		# 99.9% of time should be, but there are notable exceptions
+		case "${dlname#../bin/}" in
+			cyg${ltlibname#lib}.dll|${ltlibname}.dll)	;;
+			cyg${ltlibname#lib}.so|${ltlibname}.so)		;;
+			*)	warning "${ltlibname}.la appears to be a versioned module." ;;
+		esac
+
+		# static and import libraries are pointless for modules
+		rm -f ${ltlibdir}/${ltlibname}.a ${ltlibdir}/${ltlibname}.dll.a
+
+		cat > ${lib_la} <<-_EOF
+			# ${ltlibname}.la - a libtool library file
+			# Generated by ${ltversion}
+			# Modified by mgwport
+			#
+			# Please DO NOT delete this file!
+			# It is necessary for linking the library.
+
+			# The name that we can dlopen(3).
+			dlname='${dlname}'
+
+			# Names of this library.
+			library_names='${dlname}'
+
+			# The name of the static archive.
+			old_library=''
+
+			# Linker flags that can not go in dependency_libs.
+			inherited_linker_flags='${inherited_linker_flags}'
+
+			# Libraries that this one depends upon.
+			# This is set to empty to speed up lt_dlopen and friends.
+			dependency_libs=''
+
+			# Names of additional weak libraries provided by this library
+			weak_library_names='${weak_library_names}'
+
+			# Version information for ${ltlibname}.
+			current=${current}
+			age=${age}
+			revision=${revision}
+
+			# Is this an already installed library?
+			installed=yes
+
+			# Should we warn about portability when linking against -modules?
+			shouldnotlink=yes
+
+			# Files to dlopen/dlpreopen
+			dlopen='${dlopen}'
+			dlpreopen='${dlpreopen}'
+
+			# Directory that this library needs to be installed in:
+			libdir='${libdir}'
+			_EOF
+
+		if defined rep_requires
+		then
+			cat >> ${lib_la} <<-_EOF
+
+				# Librep module dependencies
+				rep_requires='${rep_requires}'
+				_EOF
+
+			unset rep_requires
+		fi
+	done
+
+	popd
+}
+
+__src_postinst() {
+	__prepdoc;
+	__prep_symlinks;
+	__prepetc;
+	__prepman;
+	__prepinfo;
+	__prepvargames;
+	__prep_libtool_modules;
+	__prepstrip;
+	__prepuac;
+	__prep_empty_dirs;
+}
+
+readonly -f __prep_fonts_dir __prep_freedesktop_mime __prep_gconf_schemas \
+            __prep_gsettings_schemas __prep_gio_modules __prep_gdk_pixbuf_modules \
+            __prep_gtk2_modules __prep_gtk3_modules __prep_gtk_icon_theme \
+            __prepdoc __prepetc __prepman __prepinfo __prepvargames __prep_empty_dirs \
+            __prepstrip __prepuac __prep_symlinks __prep_libtool_modules __src_postinst

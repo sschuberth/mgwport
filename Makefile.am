@@ -1,12 +1,12 @@
-SUBDIRS = bin lib cygclass data doc tests tools .
+SUBDIRS = bin lib mgwclass data doc tests tools .
 
 noinst_DATA = AUTHORS COPYING NEWS README TODO
 
 EXTRA_DIST =					\
 	$(noinst_DATA)				\
-	cygport.spec				\
-	CYGWIN-PATCHES/README		\
-	CYGWIN-PATCHES/setup.hint
+	mgwport.spec				\
+	MINGW-PATCHES/README		\
+	MINGW-PATCHES/setup.hint
 
 DISTCLEANFILES = $(PACKAGE)-$(VERSION).tar.bz2 $(PACKAGE)-$(VERSION).tar.xz
 

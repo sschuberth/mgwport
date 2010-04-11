@@ -1,0 +1,165 @@
+################################################################################
+#
+# pkg_info.cygpart - cygport package information functions
+#
+# Copyright (C) 2006, 2007, 2008, 2009, 2010 Yaakov Selkowitz
+# Provided by the Cygwin Ports project <http://sourceware.org/cygwinports/>
+#
+# cygport is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# cygport is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with cygport.  If not, see <http://www.gnu.org/licenses/>.
+#
+################################################################################
+
+__show_info() {
+	cat <<-_EOF
+	mgwport package information
+	    Package name:       ${PN}
+	    Package version:    ${PV}
+	    Package subsystem:  ${PS}
+	    MinGW/MSYS release: ${PR}
+	    Homepage:           ${HOMEPAGE}
+	    Description:        ${DESCRIPTION}
+		_EOF
+}
+
+__list_files() {
+	pushd ${D}
+	find . ! -type d | sed 's!^\.!  !' | sort
+	popd
+}
+
+__list_deps() {
+	local d
+	local nativelibs netlibs netimps tclibs tcgcclibdir tcgccsysroot
+	local os_path="${PATH}"
+
+	pushd ${D}
+
+#****v* Information/DEPS_PATH
+#  DESCRIPTION
+#  A colon-separated list of directories not ordinarily in PATH in which to
+#  search for linked dependencies.  Given directories are searched both
+#  on the system and under $D.
+#****
+
+	# This prevents a package from listing itself as a dependency if
+	# already installed
+	unset PATH
+
+	for d in ${DEPS_PATH//:/ }
+	do
+		PATH+="${D}${d}:${d}:"
+		if inherited cross
+		then
+			PATH+="${D}${CROSS_SYSROOT}${d}:${CROSS_SYSROOT}${d}:"
+		fi
+	done
+
+	export PATH+="${D}$(__host_prefix)/bin:${os_path}";
+
+	if __cross_compiling && check_target_tool gcc
+	then
+		tcgcclibdir=$(dirname $(${CTARGET}-gcc --print-file-name=libgcc.a))
+		tcgccsysroot=$(${CTARGET}-gcc -print-sysroot)
+		PATH+=":${D}${tcgcclibdir#${D}}:${tcgcclibdir#${D}}"
+
+		# FIXME: thoroughout this section, CTARGET to get libgcc et. al. deps,
+		#        or CHOST to get canadian-cross deps
+		case ${CTARGET} in
+		${CBUILD%%-*}-*-mingw*|${CBUILD%%-*}-*-msys*)
+			PATH+=":${D}/usr/${CTARGET}/sys-root/$(__target_prefix)/bin:${tcgccsysroot}$(__target_prefix)/bin"
+			# native binutils handles both cygwin and mingw binaries
+			;;
+		*-*-cygwin*|*-*-mingw*|*-*-msys*)
+			PATH+=":${D}/usr/${CTARGET}/sys-root/$(__target_prefix)/bin:${tcgccsysroot}$(__target_prefix)/bin"
+			tclibs=$(find . -type f -executable \( -name '*.exe' -o -name '*.dll' -o -name '*.so' -o -name '*.oct' -o -name '*.cmxs' \) \
+				-exec ${CTARGET}-objdump -p '{}' + 2>/dev/null | grep "DLL Name:" | sort -u | \
+				cut -d ' ' -f 3 | xargs -r which || true)
+			;;
+		*-*-darwin*)
+			PATH+=":${D}/usr/${CTARGET}/sys-root/$(__target_prefix)/lib:${tcgccsysroot}$(__target_prefix)/lib"
+			tclibs=$(find . -type f -executable -exec ${CTARGET}-otool -L '{}' + 2>/dev/null | \
+				sed -e '1d;s|^\t\([^ ]*\).*|\1|g' | sort -u | xargs -r which || true )
+			;;
+		avr|*-aout|*-coff|*-eabi*|*-elf|*-minix*|*-msdosdjgpp*|*-rdos*)
+			# no shared library support, hence no dependencies
+			;;
+		# FIXME: any other non-ELF systems?
+		*)	# ELF system; libc in /lib, other libs in /usr/lib
+			PATH+=":${D}/usr/${CTARGET}/sys-root/lib:${tcgccsysroot}/lib"
+			PATH+=":${D}/usr/${CTARGET}/sys-root/$(__target_prefix)/lib:${tcgccsysroot}$(__target_prefix)/lib"
+			tclibs=$(find . -type f -executable -exec ${CTARGET}-objdump -p '{}' + 2>/dev/null | \
+				grep ' NEEDED ' | sort -u | sed -e 's| *NEEDED *\([^ ]*\).*|\1|g' | \
+				sort -u | xargs -r which || true )
+			;;
+		esac
+	fi
+
+	# *.so: Apache2 modules, OCaml stublibs, Ruby modules
+	# *.oct: Octave modules
+	# *.cmxs: OCaml natdynlink modules: http://gallium.inria.fr/~frisch/ndl.txt
+	nativelibs=$(find . -type f -executable \( -name '*.exe' -o -name '*.dll' -o -name '*.so' -o -name '*.oct' -o -name '*.cmxs' \) \
+		-exec ${OBJDUMP} -p '{}' + 2>/dev/null | grep "DLL Name:" | sort -u | \
+		cut -d ' ' -f 3 | xargs -r which || true)
+
+	if check_prog monodis
+	then
+		netlibs=$(for x in $(monodis --assemblyref $(find . -type f -perm 644 \( -name '*.exe' -o -name '*.dll' \) ) 2>/dev/null \
+			| sed -e ':a;N;$!ba;s|\n\t| |g;s|\n0x00000000: ||g' | grep 'Public Key:' \
+			| sed -e 's|.* Version=\([1-9]\).* Name=\(mscorlib\) .*|usr/lib/mono/\1.0/\2.dll|g' \
+			-e 's|.* Version=\([0-9\.]*\) Name=\([^ ]*\).* Public Key:\([0-F ]*\)|usr/lib/mono/gac/\2/\1__\L\3\E/\2.dll|g' -e 's| ||g' \
+			| sort -u); do \
+			if ! test -f ./$x ; then echo /$x ; fi ; done)
+		netimps=$(find . \( -name '*.dll.config' -o -name '*.exe.config' \) \
+			| xargs -r grep -h 'target=.*\.dll' | sed -e 's|.*target="*\([^ "]*\.dll\).*|\1|g' \
+			| sort -u | xargs -r which || true)
+	fi
+
+	if [ "${CBUILD}" = "i686-pc-cygwin" ]
+	then
+	    echo $nativelibs $tclibs $netlibs $netimps | sort -u | xargs -r cygcheck -f | sort -fu | sed 's!^!  !';
+	else
+	    # cannot determine Cygwin package dependencies, but we can give
+	    # some guidance by listing the necessary libraries
+	    echo $nativelibs $tclibs $netlibs $netimps | sort -fu;
+	fi
+
+	popd
+
+	PATH="${os_path}"
+}
+
+__show_web() {
+	local mybrowser mywww
+
+	if defined HOMEPAGE
+	then
+		mywww=${HOMEPAGE}
+	else
+		warning "HOMEPAGE undefined, searching Google for ${ORIG_PN:-${PN}}"
+		mywww="http://www.google.com/search?q=${ORIG_PN:-${PN}}"
+	fi
+
+	for prog in "${BROWSER}" xdg-open cygstart false
+	do
+		if check_prog ${prog%% *}
+		then
+			mybrowser=${prog};
+			break;
+		fi
+	done
+
+	${mybrowser} ${mywww} &>/dev/null &
+}
+
+readonly -f __list_files __list_deps __show_info __show_web

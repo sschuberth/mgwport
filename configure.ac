@@ -1,11 +1,11 @@
-AC_INIT(cygport, 0.10.6,
-	[cygwin-ports-general@lists.sourceforge.net])
+AC_INIT(mgwport, 0.10.6,
+	[mingw-users@lists.sourceforge.net])
 
-AC_PREREQ([2.60])
+AC_PREREQ([2.64])
 
-AC_CONFIG_SRCDIR([bin/cygport.in])
+AC_CONFIG_SRCDIR([bin/mgwport.in])
 
-AM_INIT_AUTOMAKE([1.10 foreign dist-xz no-dist-gzip])
+AM_INIT_AUTOMAKE([1.11 foreign dist-xz no-dist-gzip])
 
 AM_MAINTAINER_MODE
 
@@ -24,7 +24,7 @@ AC_CONFIG_FILES([
 Makefile
 bin/Makefile
 lib/Makefile
-cygclass/Makefile
+mgwclass/Makefile
 data/Makefile
 doc/Makefile
 tests/Makefile

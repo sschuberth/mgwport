@@ -1,9 +1,9 @@
-nodist_bin_SCRIPTS = cygport
-nodist_noinst_SCRIPTS = cygport-inplace
+nodist_bin_SCRIPTS = mgwport
+nodist_noinst_SCRIPTS = mgwport-inplace
 
-cygport: cygport.in $(top_srcdir)/configure Makefile
+mgwport: mgwport.in $(top_srcdir)/configure Makefile
 	$(AM_V_GEN)sed	-e "s!\@VERSION\@!$(VERSION)!"			\
-		-e "s!\@cygclassdir\@!$(pkgdatadir)/cygclass!"	\
+		-e "s!\@mgwclassdir\@!$(pkgdatadir)/mgwclass!"	\
 		-e "s!\@docdir\@!$(docdir)!"			\
 		-e "s!\@gnuconfigdir\@!$(pkgdatadir)!"		\
 		-e "s!\@pkgdatadir\@!$(pkgdatadir)!"	\
@@ -12,9 +12,9 @@ cygport: cygport.in $(top_srcdir)/configure Makefile
 		$< > $@ ; \
 	chmod 755 $@
 
-cygport-inplace: cygport.in $(top_srcdir)/configure Makefile
+mgwport-inplace: mgwport.in $(top_srcdir)/configure Makefile
 	$(AM_V_GEN)sed	-e "s!\@VERSION\@!$(VERSION)!"			\
-		-e "s!\@cygclassdir\@!$(abs_top_srcdir)/cygclass!"	\
+		-e "s!\@mgwclassdir\@!$(abs_top_srcdir)/mgwclass!"	\
 		-e "s!\@docdir\@!$(docdir)!"			\
 		-e "s!\@gnuconfigdir\@!$(abs_top_srcdir)/data/gnuconfig!"		\
 		-e "s!\@pkgdatadir\@!$(abs_top_srcdir)/data!"		\
@@ -23,5 +23,5 @@ cygport-inplace: cygport.in $(top_srcdir)/configure Makefile
 		$< > $@ ; \
 	chmod 755 $@
 
-EXTRA_DIST = cygport.in
-CLEANFILES = cygport cygport-inplace
+EXTRA_DIST = mgwport.in
+CLEANFILES = mgwport mgwport-inplace

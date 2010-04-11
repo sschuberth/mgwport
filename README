@@ -402,12 +402,12 @@ During the 'package' phase, the additional packages will be created as
 subdirectories of dist/${PN}/ for easy transfer to release/, e.g.:
 
     libgnome2/libgnome2-devel/libgnome2-devel-2.14.0-1.tar.bz2
-    libgnome2/libgnome2-devel/setup.hint    # ${C}/devel.hint
+    libgnome2/libgnome2-devel/setup.hint    # ${M}/devel.hint
     libgnome2/libgnome2-doc/libgnome2-doc-2.14.0-1.tar.bz2
-    libgnome2/libgnome2-doc/setup.hint        # ${C}/doc.hint
+    libgnome2/libgnome2-doc/setup.hint        # ${M}/doc.hint
     libgnome2/libgnome2-2.14.0-1-src.tar.bz2
     libgnome2/libgnome2-2.14.0-1.tar.bz2
-    libgnome2/setup.hint                    # ${C}/setup.hint
+    libgnome2/setup.hint                    # ${M}/setup.hint
 
 
 6. REQUIREMENTS

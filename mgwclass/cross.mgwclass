@@ -1,0 +1,256 @@
+################################################################################
+#
+# cross.mgwclass - for building cross-compiled packages
+#
+# Part of cygport - Cygwin packaging application
+# Copyright (C) 2006, 2008, 2010, 2011 Yaakov Selkowitz
+# Provided by the Cygwin Ports project <http://sourceware.org/cygwinports/>
+#
+# cygport is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# cygport is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with cygport.  If not, see <http://www.gnu.org/licenses/>.
+#
+################################################################################
+
+#****h* Mgwclasses/cross.mgwclass
+#  SYNOPSIS
+#  CROSS_HOST="..."
+#  inherit cross
+#  DESCRIPTION
+#  This mgwclass assists in "cross-compiling", where the code being built will
+#  run on a different platform (the "host" system) then the one on which it was
+#  built (and, in most cases, NOT on the build system), but can be used on the
+#  build system to cross-compile other software which depends on it.
+#
+#  Supported build systems for cross-compiling are autotools, cmake, qmake, and
+#  custom Makefiles.  When using cross.cygclass, cygconf, cygcmake, and cygqmake4
+#  automatically use the necessary arguments for cross-compiling, and cyginstall
+#  and most of the do* and new* installation functions install into the sysroot
+#  instead of the native root.  Note that those installation functions which
+#  accept an absolute path (dodir, exeinto, insinto, dosym) make no assumptions
+#  about the sysroot.
+#****
+
+#****v* cross.mgwclass/CROSS_HOST
+#  DESCRIPTION
+#  The CPU-VENDOR-OS triplet describing the system for which you are cross-compiling,
+#  for example 'i686-pc-linux-gnu' or 'x86_64-w64-mingw32'.
+#  NOTES
+#  * CROSS_HOST must be defined before inherit()ing cross.mgwclass.
+#  * CROSS_HOST will be canonicalized upon calling "inherit cross".  That means
+#    if set to 'amd64-linux', it will be changed into 'x86_64-pc-linux-gnu'.
+#    Therefore it is important continue using $CROSS_HOST as a variable instead
+#    of writing its initial value.
+#****
+if ! defined CROSS_HOST
+then
+	error "CROSS_HOST must be defined before 'inherit cross'"
+fi
+
+CHOST=$(__canonicalize_triplet ${CROSS_HOST})
+CTARGET=${CHOST}
+CROSS_HOST=${CHOST}
+
+
+#****d* cross.mgwclass/CROSS_SYSROOT
+#  DESCRIPTION
+#  GCC cross-compilers provide the concept of a sysroot: a directory which
+#  acts as the virtual root of the target filesystem, resulting in
+#  CROSS_SYSROOT/$prefix/include and CROSS_SYSROOT/$prefix/lib being in the
+#  default search paths without requiring -I or -L flags.
+#
+#  This means that software natively compiled for the host system can be
+#  unpacked into the sysroot and used for cross-compiling.  This is
+#  especially useful when bootstrapping a new toolchain; e.g. for Linux, one
+#  can just download glibc and kernel headers packages from a Linux distro,
+#  unpack them into the CROSS_SYSROOT, and use those to build a cross-GCC
+#  for the first time.
+#
+#  If you do use natively-compiled host packages under the sysroot, you must
+#  fix paths in all *-config scripts, .la libtool libraries, and .pc
+#  pkg-config files so they do not erroneously point to Cygwin-native
+#  headers and libraries.
+#****
+CROSS_SYSROOT="/usr/${CHOST}/sys-root"
+
+#****d* cross.mgwclass/CROSS_PREFIX
+#  DESCRIPTION
+#  The $prefix directory under the sysroot.  This definition is meant to
+#  be used in configure or cmake arguments to avoid dealing with different
+#  prefixes on various systems.
+#****
+CROSS_PREFIX="$(__host_prefix)"
+
+#****d* cross.mgwclass/CROSS_BINDIR
+#  DESCRIPTION
+#  The $prefix/bin directory under the sysroot.  This definition is meant to
+#  be used in configure or cmake arguments to avoid dealing with different
+#  prefixes on various systems.
+#****
+CROSS_BINDIR="$(__host_prefix)/bin"
+
+#****d* cross.mgwclass/CROSS_INCLUDEDIR
+#  DESCRIPTION
+#  The $prefix/include directory under the sysroot.  This definition is
+#  meant to be used in configure or cmake arguments to avoid dealing with
+#  different prefixes on various systems.
+#****
+CROSS_INCLUDEDIR="$(__host_prefix)/include"
+
+#****d* cross.mgwclass/CROSS_LIBDIR
+#  DESCRIPTION
+#  The $prefix/lib directory under the sysroot.  This definition is meant to
+#  be used in configure or cmake arguments to avoid dealing with different
+#  prefixes on various systems.
+#****
+CROSS_LIBDIR="$(__host_prefix)/lib"
+
+#****d* cross.mgwclass/CROSS_DATADIR
+#  DESCRIPTION
+#  The $prefix/share directory under the sysroot.  This definition is meant to
+#  be used in configure or cmake arguments to avoid dealing with different
+#  prefixes on various systems.
+#****
+CROSS_DATADIR="$(__host_prefix)/share"
+
+CC="${CHOST}-gcc"
+CXX="${CHOST}-g++"
+F77="${CHOST}-gfortran"
+FC="${CHOST}-gfortran"
+GCJ="${CHOST}-gcj"
+OBJC="${CHOST}-gcc"
+OBJCXX="${CHOST}-g++"
+OBJDUMP="${CHOST}-objdump"
+STRIP="${CHOST}-strip"
+
+case ${CHOST} in
+*-pc-mingw*)
+	# mingw.org packages are built to be compatible with MSVC-compiled software
+	CFLAGS="${CFLAGS} -mms-bitfields"
+	CXXFLAGS="${CXXFLAGS} -mms-bitfields"
+	F77FLAGS="${F77FLAGS} -mms-bitfields"
+	FCFLAGS="${FCFLAGS} -mms-bitfields"
+	GCJFLAGS="${GCJFLAGS} -mms-bitfields"
+	OBJCFLAGS="${OBJCFLAGS} -mms-bitfields"
+	OBJCXXFLAGS="${OBJCXXFLAGS} -mms-bitfields"
+	;;
+esac
+
+if ! check_tool gcc || ! check_tool strip
+then
+	error "This package requires ${CHOST} binutils and gcc"
+fi
+
+# PKG_PROG_PKG_CONFIG looks for $host-pkg-config, but pkg-config is not
+# a "tool" that is built for each target like binutils or gcc.  Instead,
+# we set PKG_CONFIG_LIBDIR appropriately.
+# The PKG_CONFIG override silences a bogus warning during configure:
+# configure: WARNING: using cross tools not prefixed with host triplet
+export PKG_CONFIG="$(which pkg-config 2>/dev/null)"
+export PKG_CONFIG_LIBDIR="$(__host_prefix)/lib/pkgconfig:$(__host_prefix)/share/pkgconfig:/usr/share/pkgconfig"
+
+#****I* cross.mgwclass/doelflib
+#  SYNOPSIS
+#  doelflib libfoo.so.X.Y.Z [...]
+#  DESCRIPTION
+#  Installs the given ELF libraries into the CROSS_SYSROOT libdir and creates
+#  the symlinks for the SONAME (usually .so.X) and the link library (.so).
+#  NOTE
+#  Only the real library file should be passed to doelflib, not the symlinks
+#  usually created in the build directory.
+#****
+doelflib() {
+	local clibdir="$(__host_prefix)/lib"
+	local soname sonames
+
+	dodir ${clibdir}
+
+	for i
+	do
+		if [ ! -e ${i} ]
+		then
+			error "file ${i} does not exist"
+		fi
+
+		case ${i##*/} in
+		*.so*)	;;
+		*)	error "doelflib: ${i}: not an ELF shared object" ;;
+		esac
+
+		soname=$(${CHOST}-objdump -p ${i} | grep ' SONAME ' | sed -e 's| *SONAME *\([^ ]*\).*|\1|g')
+
+		# try to catch mistaken "doelflib libfoo.so*"
+		if echo "${sonames}" | grep -q ${soname}
+		then
+			error "SONAME ${soname} has already been installed"
+		else
+			sonames+=" ${soname} "
+		fi
+
+		__doinstall 0755 ${i} ${clibdir} || error "doelflib ${i} failed"
+
+		if test ${i##*/} != ${soname}
+		then
+			dosym ${i##*/} ${clibdir}/${soname}
+		fi
+		if test ${soname%.so*}.so != ${soname}
+		then
+			dosym ${i##*/} ${clibdir}/${soname%.so*}.so
+		fi
+	done
+}
+
+#****I* cross.cygclass/cross_sysrootize
+#  SYNOPSIS
+#  cross_sysrootize FILE [FILE] ...
+#  DESCRIPTION
+#  Adds CROSS_SYSROOT to all paths in given text file(s).  Paths should
+#  be specified as if on the system, without a leading $D.
+#****
+cross_sysrootize(){
+	local f
+	local prefix=$(__target_prefix)
+
+	for f in ${@}
+	do
+		if [ ! -e ${D}${f#${D}} ]
+		then
+			error "cross_sysrootize: $f: file not found"
+		fi
+
+		# the [^t] should catch paths already containing the sysroot
+		sed -i -e "s|\([^t]\)${prefix}|\1${CROSS_PREFIX}|g" ${D}${f#${D}} || error "$FUNCNAME: $f: sed failed"
+	done
+}
+
+#****I* cross.cygclass/cross_desysrootize
+#  SYNOPSIS
+#  cross_desysrootize FILE [FILE] ...
+#  DESCRIPTION
+#  Removes CROSS_SYSROOT from all paths in given text file(s).  Paths should
+#  be specified as if on the system, without a leading $D.
+#****
+cross_desysrootize(){
+	local f
+
+	for f in ${@}
+	do
+		if [ ! -e ${D}${f#${D}} ]
+		then
+			error "cross_desysrootize: $f: file not found"
+		fi
+
+		sed -i -e "s|${CROSS_SYSROOT}||g" ${D}${f#${D}} || error "$FUNCNAME: $f: sed failed"
+	done
+}
+
+readonly -f doelflib cross_sysrootize cross_desysrootize

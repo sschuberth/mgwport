@@ -1,0 +1,78 @@
+################################################################################
+#
+# src_compile.cygpart - cygport source compiling functions
+#
+# Copyright (C) 2006, 2007, 2008, 2009, 2010 Yaakov Selkowitz
+# Provided by the Cygwin Ports project <http://sourceware.org/cygwinports/>
+#
+# cygport is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# cygport is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with cygport.  If not, see <http://www.gnu.org/licenses/>.
+#
+################################################################################
+
+#****C* Compiling/lndirs
+#  SYNOPSIS
+#  lndirs [SOURCE_DIRECTORY [BUILD_DIRECTORY]]
+#  DESCRIPTION
+#  Replicates the given source directory into the given build directory by
+#  creating subdirectories and symlinking files.  This is to be used in order
+#  to build in $B where the build system does not natively support out-of-path
+#  builds.
+#
+#  If only the source directory is given, the current working directory is
+#  used for the build directory.  If no arguments are given, $S is linked
+#  into $B.
+#  REQUIRES
+#  lndir
+#****
+lndirs() {
+	local fromdir=${1};
+	local todir=${2};
+
+	if ! defined fromdir
+	then
+		fromdir="${S}";
+		todir="${B}";
+	elif ! defined todir
+	then
+		todir=.;
+	fi
+
+	check_prog_req lndir
+	lndir -silent ${fromdir} ${todir} || error "lndir failed"
+}
+
+#****f* Compiling/mgwmake
+#  SYNOPSIS
+#  mgwmake [OPTIONS]
+#  DESCRIPTION
+#  Calls 'make', passing MAKEOPTS and any options given.
+#  NOTE
+#  By default, MAKEOPTS is set to use parallel make based on the number
+#  of CPU cores on the system.  If the package's Makefiles do not support
+#  parallel builds, append "-j1" to MAKEOPTS or call "mgwmake -j1".
+#****
+mgwmake() {
+	make ${MAKEOPTS} "${@}" || error "make failed"
+}
+
+#****C* Compiling/src_compile
+#  DESCRIPTION
+#  This function must be defined in the .mgwport file, or in inherit()ed
+#  mgwclasses, containing all steps necessary to configure and compile
+#  the package.
+#
+#  The default src_compile function is provided by autotools.mgwclass.
+#****
+
+readonly -f lndirs mgwmake

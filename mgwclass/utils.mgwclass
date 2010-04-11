@@ -1,0 +1,142 @@
+################################################################################
+#
+# utils.cygclass - assortment of miscellaneous functions
+#
+# Part of cygport - Cygwin packaging application
+# Copyright (C) 2006, 2007, 2008, 2009, 2010 Yaakov Selkowitz
+# Provided by the Cygwin Ports project <http://sourceware.org/cygwinports/>
+#
+# cygport is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# cygport is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with cygport.  If not, see <http://www.gnu.org/licenses/>.
+#
+################################################################################
+
+#****h* mgwclasses/utils.mgwclass
+#  DESCRIPTION
+#  This mgwclass contains miscellaneous functions.  Currently defined herein are:
+#  * check_header
+#  * check_lib
+#  * check_pkg_config
+#****
+
+#****f* Checks/check_header
+#  SYNOPSIS
+#  inherit utils
+#  check_header [-IDIRECTORY] [-IDIRECTORY2] ... HEADER [HEADER2] ...
+#  DESCRIPTION
+#  Checks for the presence of the given header(s).  Directories can be added
+#  to the default include path by prefixing them with the -I flag.  Returns
+#  TRUE if all libraries are found, else FALSE.
+#****
+check_header() {
+	local d
+	local h
+	local gcc_inc=$(${CC} -print-search-dirs | grep '^install:' | cut -d ' ' -f 2)/include
+
+	local inc_path="${gcc_inc} ${gcc_inc}/c++ /usr/${CHOST}/include $(__host_prefix)/include"
+
+	for h
+	do
+		case ${h} in
+			-I*)
+				inc_path+=" ${h#-I}"
+				continue
+		esac
+
+		for d in ${inc_path}
+		do
+			if [ -e ${d}/${h} ]
+			then
+				continue 2
+			fi
+		done
+
+		return 1
+	done
+
+	return 0
+}
+
+#****f* Checks/check_lib
+#  SYNOPSIS
+#  inherit utils
+#  check_lib [-LDIRECTORY] [-LDIRECTORY2] ... LIBRARY [LIBRARY2] ...
+#  DESCRIPTION
+#  Checks for the presence of the given library(ies).  Directories can be added
+#  to the default library path by prefixing them with the -L flag.  Returns
+#  TRUE if all libraries are found, else FALSE.
+#****
+check_lib() {
+	local d
+	local l
+	local shlibext
+	local lib_path=$(${CC} -print-search-dirs | grep '^libraries:' | sed -e 's|libraries: =||' -e 's|:| |g' | xargs -n1 readlink -e)
+
+	case ${CHOST} in
+		*-cygwin*|*-mingw*|*-msys*)
+				shlibext=dll.a ;;
+		*-darwin*)	shlibext=dylib ;;
+		*-hpux*)	shlibext=sl ;;
+		*)		shlibext=so ;;
+	esac
+
+	for l
+	do
+		case ${l} in
+			-L*)
+				lib_path+=" ${l#-L}"
+				continue
+		esac
+
+		for d in ${lib_path}
+		do
+			if [ -e ${d}/lib${l}.a -o -e ${d}/lib${l}.${shlibext} ]
+			then
+				continue 2
+			fi
+		done
+
+		return 1
+	done
+
+	return 0
+}
+
+#****f* Checks/check_pkg_config
+#  SYNOPSIS
+#  inherit utils
+#  check_pkg_config NAME "PKG_CONFIG_SPEC"
+#  DESCRIPTION
+#  Checks for the presence of the given development packages with pkg-config.
+#  If given pkg-config spec is found, return TRUE and defines NAME_CFLAGS
+#  and NAME_LIBS.  If not found, returns FALSE.
+#  REQUIRES
+#  pkg-config
+#****
+check_pkg_config() {
+	local modname=${1};
+	shift;
+
+	check_prog_req pkg-config;
+
+	if ! pkg-config --exists ${*}
+	then
+		return 1;
+	fi
+
+	export ${modname}_CFLAGS="$(pkg-config --cflags ${*})";
+	export ${modname}_LIBS="$(pkg-config --libs ${*})";
+	return 0;
+}
+
+readonly -f check_header check_lib check_pkg_config

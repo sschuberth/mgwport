@@ -2,19 +2,19 @@
 
 set -e
 
-${top_builddir}/bin/cygport-inplace --help
+${top_builddir}/bin/mgwport-inplace --help
 echo
 
-${top_builddir}/bin/cygport-inplace --version
+${top_builddir}/bin/mgwport-inplace --version
 echo
 
-cat > foo-1.2.3-4.cygport <<-_EOF
-	DESCRIPTION="Cygport messages test package"
+cat > foo-1.2.3-4.mgwport <<-_EOF
+	DESCRIPTION="mgwport messages test package"
 	HOMEPAGE="http://sourceware.org/cygwinports/"
 	SRC_URI="http://sourceware.org/cygwinports/\${P}.ABC"
 	_EOF
 
-${top_builddir}/bin/cygport-inplace foo-1.2.3-4.cygport info
+${top_builddir}/bin/mgwport-inplace foo-1.2.3-4.mgwport info
 echo
 
-rm -f foo-1.2.3-4.cygport
+rm -f foo-1.2.3-4.mgwport

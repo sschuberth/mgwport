@@ -1,0 +1,99 @@
+################################################################################
+#
+# cvs.cygclass - functions for building packages from CVS checkouts
+#
+# Part of cygport - Cygwin packaging application
+# Copyright (C) 2006, 2007, 2008, 2009, 2010 Yaakov Selkowitz
+# Provided by the Cygwin Ports project <http://sourceware.org/cygwinports/>
+#
+# cygport is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# cygport is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with cygport.  If not, see <http://www.gnu.org/licenses/>.
+#
+################################################################################
+
+#****h* mgwclasses/cvs.mgwclass
+#  SYNOPSIS
+#  CVS_URI="..."
+#  [CVS_BRANCH="..."]
+#  [CVS_DATE="..."]
+#  inherit cvs
+#  DESCRIPTION
+#  CVS is a centralized version control system.  It was the first widely-used
+#  VCS for open-source software, but many projects have since moved to Subversion
+#  or one of the distributed VCSs.
+#
+#  This mgwclass creates source tarballs from CVS checkouts.
+#  NOTE
+#  This mgwclass sets a special SRC_URI for the tarball it creates.  If
+#  additional sources are required, be sure to _add_ to SRC_URI rather than
+#  outright setting it.
+#  REQUIRES
+#  cvs
+#****
+
+# is this truly necessary?
+CVS_MODULE=${CVS_MODULE:-${ORIG_PN:-${PN}}}
+
+cvs_tarball="${CVS_MODULE//\//-}-${PV}.tar.bz2"
+
+SRC_URI="${cvs_tarball} "
+SRC_DIR="${CVS_MODULE}"
+
+cvs_fetch() {
+	local cvs_branch
+	local cvs_date
+
+	check_prog_req cvs
+
+#****v* cvs.mgwclass/CVS_URI
+#  DESCRIPTION
+#  Address of CVS repository, usually in the form:
+#    :pserver:anonymous@<server_uri>:/remote/path/to/repository
+#****
+	if ! defined CVS_URI
+	then
+		error "CVS_URI must be defined"
+	fi
+
+#****v* cvs.mgwclass/CVS_BRANCH
+#  DESCRIPTION
+#  Specific revision or tag to checkout.
+#****
+	if defined CVS_BRANCH
+	then
+		cvs_branch="-r ${CVS_BRANCH}"
+	fi
+
+#****v* cvs.mgwclass/CVS_DATE
+#  DESCRIPTION
+#  Specific revision date to checkout.  Preferred form is YYYY-MM-DD [HH:MM],
+#  where the time is optional; the hyphens in the date can be omitted.
+#  NOTE
+#  If a date is specified without a time, then the time 00:00 is implied,
+#  which will exclude all revisions made on the given date.  Use the
+#  following day in CVS_DATE instead.
+#****
+	if defined CVS_DATE
+	then
+		cvs_date="-D ${CVS_DATE}"
+	fi
+
+	# T likely doesn't exist at this point, so create it first
+	mkdir -p ${T}
+	cd ${T}
+	verbose cvs -d ${CVS_URI} checkout ${cvs_branch} ${cvs_date} ${CVS_MODULE}
+
+	tar ${_tar_bz2_flag}cf ${top}/${cvs_tarball} --exclude-vcs ${CVS_MODULE}
+}
+
+readonly -f cvs_fetch
