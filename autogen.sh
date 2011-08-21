@@ -22,7 +22,7 @@ cd ${B}
 verbose ${S}/configure \
 	--srcdir=${S} \
 	--enable-maintainer-mode \
-	--prefix=/usr \
-	--sysconfdir=/etc \
-	--datarootdir=/usr/share \
+	--prefix=/mingw \
+	--sysconfdir=/mingw/etc \
+	--datarootdir=/mingw/share \
 	"${@}"

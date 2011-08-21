@@ -347,7 +347,10 @@ _topdir=${argv[1]%/*};
 
 if [ "x${_topdir}" = "x${argv[1]}" ]
 then
-	if [ -f /usr/src/${mgwportfile} ]
+	if [ -f /mingw/src/${mgwportfile} ]
+	then
+		_topdir=/mingw/src;
+	elif [ -f /usr/src/${mgwportfile} ]
 	then
 		_topdir=/usr/src;
 	else

@@ -73,7 +73,7 @@ TOOLCHAIN_TARGET=${CTARGET}
 #****
 if test ${CTARGET} != ${CHOST}
 then
-	TOOLCHAIN_SYSROOT="/usr/${CTARGET}/sys-root"
+	TOOLCHAIN_SYSROOT="$(__mpflavor_prefix)/${CTARGET}/sys-root"
 fi
 
 # A normal cross-compiler uses the stage1 xgcc to cross-compile

@@ -8,5 +8,5 @@ src_install() {
 	cd ${B}
 	mgwinstall
 
-	make_etc_defaults /mingw/etc/mgwport.conf
+	make_etc_defaults $(__mpflavor_sysconfdir)/mgwport.conf
 }

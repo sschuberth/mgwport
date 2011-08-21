@@ -50,7 +50,7 @@ fi
 #  DESCRIPTION
 #  Absolute path to the Tcl interpreter.
 #****
-TCLSH=/usr/bin/tclsh
+TCLSH=$(__mpflavor_prefix)/bin/tclsh
 
 #****d* tcl.mgwclass/TCL_VERSION
 #  DESCRIPTION
@@ -63,7 +63,7 @@ eval $(grep '^TCL_VERSION=' ${ac_cv_c_tclconfig}/tclConfig.sh)
 #  Location of the Tcl private headers, necessary when building packages
 #  which expect to build from a Tcl source tree (e.g. Tk).
 #****
-TCL_INCLUDEDIR="/usr/include/tcl${TCL_VERSION}"
+TCL_INCLUDEDIR="$(__mpflavor_prefix)/include/tcl${TCL_VERSION}"
 
 #****d* tcl.mgwclass/TCL_LIBDIR
 #  DESCRIPTION

@@ -22,6 +22,11 @@
 ################################################################################
 
 set -e
+MPFLAVOR=${MPFLAVOR:-i686-pc-mingw32}
+case ${MPFLAVOR} in
+  i686-pc-mingw32 ) __prefix=/mingw ;;
+  * ) __prefix=/usr ;;
+esac
 
 if (( $# < 2 ))
 then
@@ -34,7 +39,7 @@ case $1 in
 esac
 
 # FIXME: assumes libtool-2.2 installed in /usr
-host=$(/usr/share/libtool/config/config.sub $1 2> /dev/null || true)
+host=$(${__prefix}/share/libtool/config/config.sub $1 2> /dev/null || true)
 
 if test x"$host" = x
 then
@@ -60,9 +65,9 @@ do
 	esac
 
 	t=$(mktemp -d)
-	mkdir -p $t/usr/$host/sys-root
-	tar axf $tar -C $t/usr/$host/sys-root
-	tar acf $(dirname ${tar})/$host-${tar##*/} -C $t usr/
+	mkdir -p $t${__prefix}/$host/sys-root
+	tar axf $tar -C $t${__prefix}/$host/sys-root
+	tar acf $(dirname ${tar})/$host-${tar##*/} -C $t ${__prefix}
 	rm -fr $t
 
 	echo "Success"

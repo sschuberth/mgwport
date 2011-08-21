@@ -65,7 +65,7 @@ __list_deps() {
 		fi
 	done
 
-	export PATH+="${D}$(__host_prefix)/bin:${os_path}";
+	export PATH+="${D}$(__mpflavor_prefix)/bin:${os_path}";
 
 	if __cross_compiling && check_target_tool gcc
 	then
@@ -77,11 +77,11 @@ __list_deps() {
 		#        or CHOST to get canadian-cross deps
 		case ${CTARGET} in
 		${CBUILD%%-*}-*-mingw*|${CBUILD%%-*}-*-msys*)
-			PATH+=":${D}/usr/${CTARGET}/sys-root/$(__target_prefix)/bin:${tcgccsysroot}$(__target_prefix)/bin"
+			PATH+=":${D}$(__mpflavor_prefix)/${CTARGET}/sys-root/$(__target_prefix)/bin:${tcgccsysroot}$(__target_prefix)/bin"
 			# native binutils handles both cygwin and mingw binaries
 			;;
 		*-*-cygwin*|*-*-mingw*|*-*-msys*)
-			PATH+=":${D}/usr/${CTARGET}/sys-root/$(__target_prefix)/bin:${tcgccsysroot}$(__target_prefix)/bin"
+			PATH+=":${D}$(__mpflavor_prefix)/${CTARGET}/sys-root/$(__target_prefix)/bin:${tcgccsysroot}$(__target_prefix)/bin"
 			tclibs=$(find . -type f -executable \( -name '*.exe' -o -name '*.dll' -o -name '*.so' -o -name '*.oct' -o -name '*.cmxs' \) \
 				-exec ${CTARGET}-objdump -p '{}' + 2>/dev/null | grep "DLL Name:" | sort -u | \
 				cut -d ' ' -f 3 | xargs -r which || true)
@@ -150,7 +150,7 @@ __show_web() {
 		mywww="http://www.google.com/search?q=${ORIG_PN:-${PN}}"
 	fi
 
-	for prog in "${BROWSER}" xdg-open cygstart false
+	for prog in "${BROWSER}" xdg-open cygstart start false
 	do
 		if check_prog ${prog%% *}
 		then

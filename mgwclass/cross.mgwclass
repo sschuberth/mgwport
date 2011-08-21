@@ -80,7 +80,7 @@ CROSS_HOST=${CHOST}
 #  pkg-config files so they do not erroneously point to Cygwin-native
 #  headers and libraries.
 #****
-CROSS_SYSROOT="/usr/${CHOST}/sys-root"
+CROSS_SYSROOT="$(__mpflavor_prefix)/${CHOST}/sys-root"
 
 #****d* cross.mgwclass/CROSS_PREFIX
 #  DESCRIPTION
@@ -156,7 +156,7 @@ fi
 # The PKG_CONFIG override silences a bogus warning during configure:
 # configure: WARNING: using cross tools not prefixed with host triplet
 export PKG_CONFIG="$(which pkg-config 2>/dev/null)"
-export PKG_CONFIG_LIBDIR="$(__host_prefix)/lib/pkgconfig:$(__host_prefix)/share/pkgconfig:/usr/share/pkgconfig"
+export PKG_CONFIG_LIBDIR="$(__host_prefix)/lib/pkgconfig:$(__host_prefix)/share/pkgconfig:$(__mpflavor_prefix)/share/pkgconfig"
 
 #****I* cross.mgwclass/doelflib
 #  SYNOPSIS

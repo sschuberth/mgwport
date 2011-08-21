@@ -229,6 +229,80 @@ __target_prefix() {
 	echo -n ${prefix}
 }
 
+#****v* Syntax/MPFLAVOR
+#  DESCRIPTION
+#  Controls whether this script acts in its "mingw" flavor, or its "msys"
+#  flavor.  This is a property of the script itself, not the buildhost.
+#  Conceptually, "mgwport in its mingw flavor" is a *different product*
+#  than "mgwport in its msys flavor".  This variable may be overridden
+#  by client .mgwports.  It should be set to a cpu-vendor-os triple, such
+#  as i686-pc-msys or i686-pc-mingw32.
+#  DEFAULT VALUE
+#  i686-pc-mingw32
+#****
+declare -x MPFLAVOR="i686-pc-mingw32"
+
+#****f* Syntax/__mpflavor_prefix
+#  DESCRIPTION
+#  Returns the "correct" prefix for package data, given the flavor specified
+#  in $MPFLAVOR.  That is, if this script is acting in its "mingw" flavor,
+#  then documentation and such will go into /mingw/share/doc/MinGW/,
+#  /mingw/share/doc/${PN}, etc.  If it is acting in its "msys" flavor, then
+#  that information should be installed into /usr/share/doc/MSYS/ and
+#  /usr/share/doc/${PN}, etc.  Note that this is conceptually distinct from
+#  items controlled by --prefix; it covers the "metadata" external to the target
+#  package's own build system.  Used to generalize the behavior of functions
+#  such as 'dodoc' and 'make_etc_defaults'.
+#****
+__mpflavor_prefix() {
+	local prefix
+	case ${MPFLAVOR} in
+		*-*-mingw*)       prefix=/mingw ;;
+		*)                prefix=/usr ;;
+	esac
+	echo -n ${prefix}
+}
+
+#****f* Syntax/__mpflavor_sysconfdir
+#  DESCRIPTION
+#  Returns the "correct" sysconfdir for package data, given the flavor specified
+#  in $MPFLAVOR.  That is, if this script is acting in its "mingw" flavor,
+#  then the proper sysconf directory is /mingw/etc; however, if it is acting in
+#  its "msys" flavor, then the correct sysconf directory is /etc.  Note that this
+#  is conceptually distinct from items controlled by --sysconfdir; it covers the
+#  "metadata" external to the target package's own build system.  Used to generalize
+#  the behavior of functions such as 'dodoc' and 'make_etc_defaults'.
+#****
+__mpflavor_sysconfdir() {
+	local sysconfdir
+	case ${MPFLAVOR} in
+		*-*-mingw*)       sysconfdir=/mingw/etc ;;
+		*)                sysconfdir=/etc;;
+	esac
+	echo -n ${sysconfdir}
+}
+
+#****f* Syntax/__mpflavor_localstatedir
+#  DESCRIPTION
+#  Returns the "correct" localstatedir for package data, given the flavor specified
+#  in $MPFLAVOR.  That is, if this script is acting in its "mingw" flavor,
+#  then the proper statedir is /mingw/var; however, if it is acting in its "msys"
+#  flavor, then the correct statedir is /var.  Note that this is conceptually
+#  distinct from items controlled by --localstatedir; it covers the "metadata"
+#  external to the target package's own build system.  Used to generalize the
+#  behavior of functions such as 'dodoc' and 'make_etc_defaults'.
+#****
+__mpflavor_localstatedir() {
+	local localstatedir
+	case ${MPFLAVOR} in
+		*-*-mingw*)       localstatedir=/mingw/var;;
+		*)                localstatedir=/var;;
+	esac
+	echo -n ${localstatedir}
+}
+
+
 readonly -f defined pushd popd error warning inform verbose __stage __step \
 	__log_init __canonicalize_triplet __cross_compiling __cross_compiling_error \
 	__host_prefix __target_prefix
+readonly -f __mpflavor_prefix __mpflavor_sysconfdir __mpflavor_localstatedir

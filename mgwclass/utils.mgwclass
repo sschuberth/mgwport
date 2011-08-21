@@ -43,7 +43,7 @@ check_header() {
 	local h
 	local gcc_inc=$(${CC} -print-search-dirs | grep '^install:' | cut -d ' ' -f 2)/include
 
-	local inc_path="${gcc_inc} ${gcc_inc}/c++ /usr/${CHOST}/include $(__host_prefix)/include"
+	local inc_path="${gcc_inc} ${gcc_inc}/c++ $(__mpflavor_prefix)/${CHOST}/include $(__host_prefix)/include"
 
 	for h
 	do

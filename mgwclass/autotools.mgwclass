@@ -184,7 +184,7 @@ mgwautoreconf() {
 
 			if $(grep -Eq '(AM_GNU_GETTEXT|AM_ICONV|AC_GGZ_INTL)' ${sub_configure_ac})
 			then
-				cp -f /usr/share/gettext/config.rpath ${d}/
+				cp -f $(__mpflavor_prefix)/share/gettext/config.rpath ${d}/
 				__config_set with_gnu_gettext 1
 			fi
 
@@ -477,8 +477,8 @@ mgwconf() {
 	# Set default configure arguments
 	confargs="--prefix=${prefix} --exec-prefix=${prefix} --bindir=${prefix}/bin \
 			  --sbindir=${prefix}/sbin --libexecdir=${prefix}/lib \
-			  --datadir=${prefix}/share --localstatedir=${prefix%/usr}/var \
-			  --sysconfdir=${prefix%/usr}/etc"
+			  --datadir=${prefix}/share --localstatedir=${prefix%$(__mpflavor_prefix)}$(__mpflavor_localstatedir) \
+			  --sysconfdir=${prefix%$(__mpflavor_prefix)}$(__mpflavor_sysconfdir)"
 
 	case "x${confver}" in
 		x2.6[0-9]*)

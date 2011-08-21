@@ -74,8 +74,8 @@ __doinstall() {
 
 	ltinst=
 	case ${file} in
-		*.la)  ltinst="/usr/bin/libtool --mode=install" ;;
-		*)     [ -f ${file%/*}/.libs/${file##*/} ] && ltinst="/usr/bin/libtool --mode=install" ;;
+		*.la)  ltinst="$(__mpflavor_prefix)/bin/libtool --mode=install" ;;
+		*)     [ -f ${file%/*}/.libs/${file##*/} ] && ltinst="$(__mpflavor_prefix)/bin/libtool --mode=install" ;;
 	esac
 
 	verbose ${ltinst} /usr/bin/install -m${mode} ${file} ${D}${targetdir}/${targetfile}
@@ -151,14 +151,14 @@ docinto() {
 #  SYNOPSIS
 #  dodoc FILE [FILE] ...
 #  DESCRIPTION
-#  Installs the given files into $D/usr/share/doc/PN/, or a subdirectory thereof
-#  specified by the previous call to docinto.
+#  Installs the given files into $D$(__mpflavor_prefix)/share/doc/PN/, or a
+#  subdirectory thereof specified by the previous call to docinto.
 #****
 dodoc() {
 	case "${_docinto_dir}" in
-		'')	docdir=/usr/share/doc/${PN} ;;
-		/*)	docdir=/usr/share/doc${_docinto_dir} ;;
-		*)	docdir=/usr/share/doc/${PN}/${_docinto_dir} ;;
+		'')	docdir=$(__mpflavor_prefix)/share/doc/${PN} ;;
+		/*)	docdir=$(__mpflavor_prefix)/share/doc${_docinto_dir} ;;
+		*)	docdir=$(__mpflavor_prefix)/share/doc/${PN}/${_docinto_dir} ;;
 	esac
 
 	dodir ${docdir}
@@ -190,9 +190,9 @@ dodoc() {
 #****
 newdoc() {
 	case "${_docinto_dir}" in
-		'')	docdir=/usr/share/doc/${PN} ;;
-		/*)	docdir=/usr/share/doc${_docinto_dir} ;;
-		*)	docdir=/usr/share/doc/${PN}/${_docinto_dir} ;;
+		'')	docdir=$(__mpflavor_prefix)/share/doc/${PN} ;;
+		/*)	docdir=$(__mpflavor_prefix)/share/doc${_docinto_dir} ;;
+		*)	docdir=$(__mpflavor_prefix)/share/doc/${PN}/${_docinto_dir} ;;
 	esac
 
 	dodir ${docdir}
@@ -652,8 +652,8 @@ dosym() {
 #  and a target-prefixed version into the native bindir.
 #****
 dotool() {
-	local _bindir=/usr/bin
-	local _tooldir=/usr/${CTARGET}/bin
+	local _bindir=$(__mpflavor_prefix)/bin
+	local _tooldir=$(__mpflavor_prefix)/${CTARGET}/bin
 
 	dodir ${_bindir} ${_tooldir}
 	for i
@@ -771,22 +771,22 @@ make_etc_defaults() {
 			continue
 		fi
 
-		dodir /etc/defaults${etc%/*}
-		mv ${D}${etc} ${D}/etc/defaults${etc}
+		dodir $(__mpflavor_sysconfdir)/defaults${etc%/*}
+		mv ${D}${etc} ${D}$(__mpflavor_sysconfdir)/defaults${etc}
 
-		dodir /etc/postinstall
-		cat >> ${D}/etc/postinstall/${PN}.sh <<-_EOF
+		dodir $(__mpflavor_sysconfdir)/postinstall
+		cat >> ${D}$(__mpflavor_sysconfdir)/postinstall/${PN}.sh <<-_EOF
 			if [ ! -f ${etc} ]
 			then
 			    /usr/bin/mkdir -p ${etc%/*}
-			    /usr/bin/cp /etc/defaults${etc} ${etc}
+			    /usr/bin/cp $(__mpflavor_sysconfdir)/defaults${etc} ${etc}
 			fi
 
 		_EOF
 
-		dodir /etc/preremove
-		cat >> ${D}/etc/preremove/${PN}.sh <<-_EOF
-			if [ -f ${etc} ] && cmp -s /etc/defaults${etc} ${etc}
+		dodir $(__mpflavor_sysconfdir)/preremove
+		cat >> ${D}$(__mpflavor_sysconfdir)/preremove/${PN}.sh <<-_EOF
+			if [ -f ${etc} ] && cmp -s $(__mpflavor_sysconfdir)/defaults${etc} ${etc}
 			then
 			    rm ${etc}
 			fi
@@ -840,8 +840,8 @@ mgwinstall() {
 			docdir=${D}${prefix}/share/doc/${PN} \
 			infodir=${D}${prefix}/share/info \
 			mandir=${D}${prefix}/share/man \
-			localstatedir=${D}${prefix%/usr}/var \
-			sysconfdir=${D}${prefix%/usr}/etc \
+			localstatedir=${D}${prefix%$(__mpflavor_prefix)}$(__mpflavor_localstatedir) \
+			sysconfdir=${D}${prefix%$(__mpflavor_prefix)}$(__mpflavor_sysconfdir) \
 			"${@}" \
 			|| error "make install No-DESTDIR failed"
 	fi
