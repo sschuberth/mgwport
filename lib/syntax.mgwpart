@@ -133,7 +133,7 @@ __log_init() {
 	local log=${1}
 	rm -f ${log}
 
-	echo -e cygport ${_version} '\n' >> ${log}
+	echo -e mgwport ${_version} '\n' >> ${log}
 
 	for var in PF S B D C T CBUILD CHOST CTARGET CC CFLAGS CPPFLAGS CXX CXXFLAGS \
 	           F77 FFLAGS FC FCFLAGS GCJ GCJFLAGS OBJC OBJCFLAGS OBJCXX OBJCXXFLAGS \
@@ -217,6 +217,35 @@ __host_prefix() {
 	echo -n ${prefix}
 }
 
+# Differs from __host_prefix only if !cross, and host is mingw
+# In this case, we want to configure with --prefix=<dos style>
+# even though for most operations, we will use the "unixish" form
+# provided by __host_prefix.
+__host_nprefix() {
+	local prefix
+	if inherited cross
+	then
+		__host_prefix
+		return
+	else
+		case "${CHOST}" in
+			*-*-mingw*)
+				# This should always be 'native' MinGW, but add
+				# a special case to handle "cross" builds that
+				# don't declare themselves -- specifically for
+				# mgwport's own "bootstrap" test.
+				case $(uname -s) in
+					MINGW*) prefix=$(cd /mingw && pwd -W) ;;
+					*)      prefix="C:/MinGW" ;;
+				esac
+				;;
+			*)		__host_prefix ; return ;;
+		esac
+	fi
+
+	echo -n ${prefix}
+}
+
 __target_prefix() {
 	local prefix
 
@@ -228,19 +257,6 @@ __target_prefix() {
 
 	echo -n ${prefix}
 }
-
-#****v* Syntax/MPFLAVOR
-#  DESCRIPTION
-#  Controls whether this script acts in its "mingw" flavor, or its "msys"
-#  flavor.  This is a property of the script itself, not the buildhost.
-#  Conceptually, "mgwport in its mingw flavor" is a *different product*
-#  than "mgwport in its msys flavor".  This variable may be overridden
-#  by client .mgwports.  It should be set to a cpu-vendor-os triple, such
-#  as i686-pc-msys or i686-pc-mingw32.
-#  DEFAULT VALUE
-#  i686-pc-mingw32
-#****
-declare -x MPFLAVOR="i686-pc-mingw32"
 
 #****f* Syntax/__mpflavor_prefix
 #  DESCRIPTION

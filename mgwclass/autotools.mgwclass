@@ -472,7 +472,7 @@ mgwconf() {
 		fi
 	done
 
-	prefix=$(__host_prefix)
+	prefix=$(__host_nprefix)
 
 	# Set default configure arguments
 	confargs="--prefix=${prefix} --exec-prefix=${prefix} --bindir=${prefix}/bin \
@@ -482,7 +482,7 @@ mgwconf() {
 
 	case "x${confver}" in
 		x2.6[0-9]*)
-			confargs+=" --datarootdir=${prefix}/share --docdir=${prefix}/share/doc/${PN}"
+			confargs+=" --datarootdir=${prefix}/share --docdir=${prefix}/share/doc/${PN}/${PV}"
 			;;
 		*)
 			confargs+=" --infodir=${prefix}/share/info --mandir=${prefix}/share/man"

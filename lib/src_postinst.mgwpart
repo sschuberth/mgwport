@@ -281,6 +281,13 @@ __prepdoc() {
 		* )         insinto $(__mpflavor_prefix)/share/doc/UNKNOWN ;;
 		esac
 		doins ${M}/${PN}.README;
+	elif [ -e "${S}/MINGW-PATCHES/README" \
+		-a "${PN}" == "mgwport" \
+		-a "${PS}" == "msys" ]
+	then
+		# special case for bootstrapping mgwport on msys
+		insinto $(__mpflavor_prefix)/share/doc/MSYS
+		newins ${S}/MINGW-PATCHES/README ${PN}.README;
 	else
 		warning "MinGW/MSYS README is missing"
 	fi
@@ -659,13 +666,26 @@ __prep_symlinks() {
 	do
 		l_src=$(readlink ${l})
 
-		# avoid .exe suffix in symlinks
+		# avoid .exe suffix in symlinks -- for cygwin
 		# http://cygwin.com/ml/cygwin-apps/2007-04/msg00065.html
 		case ${CHOST}:${l} in
 			*-*-cygwin*:*.exe)
 				mv ${l} ${l%.exe};
 				l=${l%.exe};
 				;;
+		esac
+
+		# Require .exe suffix in symlinks -- for mingw and msys
+		case ${CHOST}:${l_src} in
+			*-*-mingw*:*.exe|*-*-msys*|*.exe)
+				case "${l}" in
+					*.exe)
+						;; # do nothing
+					*)
+						mv ${l} ${l}.exe;
+						l=${l}.exe
+						;;
+				esac
 		esac
 
 		case ${l_src} in

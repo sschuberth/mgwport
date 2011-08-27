@@ -136,7 +136,7 @@ newbin() {
 #  DESCRIPTION
 #  Sets the subdirectory into which dodoc and newdoc should install.
 #  If the subdirectory is prefixed by a slash, then dodoc and newdoc will use
-#  /usr/share/doc/SUBDIRECTORY/; if not, they will use /usr/share/doc/PN/SUBDIRECTORY/.
+#  /usr/share/doc/SUBDIRECTORY/; if not, they will use /usr/share/doc/PN/PV/SUBDIRECTORY/.
 #****
 docinto() {
 	if (( $# != 1 ))
@@ -151,14 +151,14 @@ docinto() {
 #  SYNOPSIS
 #  dodoc FILE [FILE] ...
 #  DESCRIPTION
-#  Installs the given files into $D$(__mpflavor_prefix)/share/doc/PN/, or a
+#  Installs the given files into $D$(__mpflavor_prefix)/share/doc/PN/PV/, or a
 #  subdirectory thereof specified by the previous call to docinto.
 #****
 dodoc() {
 	case "${_docinto_dir}" in
-		'')	docdir=$(__mpflavor_prefix)/share/doc/${PN} ;;
+		'')	docdir=$(__mpflavor_prefix)/share/doc/${PN}/${PV} ;;
 		/*)	docdir=$(__mpflavor_prefix)/share/doc${_docinto_dir} ;;
-		*)	docdir=$(__mpflavor_prefix)/share/doc/${PN}/${_docinto_dir} ;;
+		*)	docdir=$(__mpflavor_prefix)/share/doc/${PN}/${PV}/${_docinto_dir} ;;
 	esac
 
 	dodir ${docdir}
@@ -185,14 +185,14 @@ dodoc() {
 #  SYNOPSIS
 #  newdoc FILE NEW_NAME
 #  DESCRIPTION
-#  Installs the given file into $D/usr/share/doc/PN/, or a subdirectory thereof
+#  Installs the given file into $D/usr/share/doc/PN/PV/, or a subdirectory thereof
 #  specified by the previous call to docinto, with the given new name.
 #****
 newdoc() {
 	case "${_docinto_dir}" in
-		'')	docdir=$(__mpflavor_prefix)/share/doc/${PN} ;;
+		'')	docdir=$(__mpflavor_prefix)/share/doc/${PN}/${PV} ;;
 		/*)	docdir=$(__mpflavor_prefix)/share/doc${_docinto_dir} ;;
-		*)	docdir=$(__mpflavor_prefix)/share/doc/${PN}/${_docinto_dir} ;;
+		*)	docdir=$(__mpflavor_prefix)/share/doc/${PN}/${PV}/${_docinto_dir} ;;
 	esac
 
 	dodir ${docdir}
@@ -807,7 +807,7 @@ __prepinstalldirs() {
 #  necessary arguments to install into $D, based on the value of USE_DESTDIR.
 #****
 mgwinstall() {
-	local inst_target prefix
+	local inst_target prefix nprefix
 
 	if $(make -n -s install/fast &> /dev/null)
 	then
@@ -821,12 +821,16 @@ mgwinstall() {
 #  Set to 1 (the default) if 'make install' supports the DESTDIR variable, or
 #  0 if not, in which case the value of prefix and the standard *dir variables
 #  will be overriden with $D-prefixed values.
+#  NOTE: if __host_prefix != __host_nprefix, then it is assumed that DESTDIR
+#  will not work -- specifically ${DESTDIR}C:/MinGW causes problems.
 #****
-	if __arg_bool USE_DESTDIR true
+	prefix=$(__host_prefix)
+	nprefix=$(__host_nprefix)
+
+	if __arg_bool USE_DESTDIR true && test "${prefix}" == "${nprefix}"
 	then
 		make ${MAKEOPTS} ${inst_target} DESTDIR=${D} "${@}" || error "make install DESTDIR failed"
 	else
-		prefix=$(__host_prefix)
 		make ${MAKEOPTS} install \
 			prefix=${D}${prefix} \
 			exec_prefix=${D}${prefix} \

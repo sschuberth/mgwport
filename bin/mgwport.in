@@ -33,13 +33,6 @@ set -e;
 # for regexes, sort, etc.
 export LC_COLLATE=C
 
-# Determine build platform personality
-case $(uname -s) in
-  *MINGW* ) build_t=mingw;;
-  *MSYS*  ) build_t=msys;;
-  *       ) build_t=cross;;
-esac
-
 declare -r  _version=@VERSION@;
 
 declare -r _privlibdir=@pkglibdir@;
@@ -153,9 +146,65 @@ fi
 
 # Values which can be overridden either system-wide or per package
 
+# can't use check_prog yet
+if hash nproc &> /dev/null
+then
 declare    MAKEOPTS="-j$(($(nproc 2>/dev/null) + 1)) ";
+else
+declare    MAKEOPTS="-j1 ";
+fi
+
+# Do this early, in order to determine MPFLAVOR
+# argv[1] may or may not include the .mgwport extension
+            PF=${argv[1]##*/}
+            PF=${PF%.mgwport}
+declare -r  PF=${PF%.msysport}
+
+_topdir=${argv[1]%/*};
+
+if [ "x${_topdir}" = "x${argv[1]}" ]
+then
+	if [ -f /mingw/src/${PF}.mgwport ]
+	then
+		_topdir=/mingw/src;
+	elif [ -f /usr/src/${PF}.msysport ]
+	then
+		_topdir=/usr/src;
+	else
+		_topdir=.;
+	fi
+fi
+
+declare -r top=$(cd ${_topdir}; pwd);
+unset _topdir;
+
+#****v* Globals/MPFLAVOR
+#  DESCRIPTION
+#  Controls whether this script acts in its "mingw" flavor, or its "msys"
+#  flavor.  This is a property of the script itself, not the buildhost.
+#  Conceptually, "mgwport in its mingw flavor" is a *different product*
+#  than "mgwport in its msys flavor".  This variable is "set" depending
+#  on whether argv[1] ends in .mgwport or .msysport.  It should be set
+#  It should be set to a cpu-vendor-os triple, such as i686-pc-msys or
+#  i686-pc-mingw32.
+#****
+
+### Now set MPFLAVOR (and mgwport filename)
+if [ -e ${top}/${PF}.mgwport ]
+then
+	declare -r MPFLAVOR=i686-pc-mingw32
+	declare -r mgwportfile=${PF}.mgwport
+elif [ -e ${top}/${PF}.msysport ]
+then
+	declare -r MPFLAVOR=i686-pc-msys
+	declare -r mgwportfile=${PF}.msysport
+else
+	error "${PF}.[mgw|msys]port not found.";
+fi
 
 # load configuration
+case "${MPFLAVOR}" in
+*mingw32* )
 for conf in ${_sysconfdir}/mgwport.conf \
 			"${HOME}/.mgwportrc" \
 			"${HOME}/.mgwport.conf" \
@@ -167,7 +216,24 @@ do
 	fi
 done
 unset conf;
+;;
 
+*msys* )
+# ideally, _sysconfdir is different for msys and mingw, so can
+# use the same name. However, ${HOME} is shared...
+for conf in ${_sysconfdir}/mgwport.conf \
+			"${HOME}/.msysportrc" \
+			"${HOME}/.msysport.conf" \
+			"${HOME}/.msysport/msysport.conf"
+do
+	if [ -e "${conf}" ]
+	then
+		source "${conf}" || error "could not read ${conf}"
+	fi
+done
+unset conf;
+;;
+esac
 
 ################################################################################
 #
@@ -319,13 +385,6 @@ unset _autotools_MGWCLASS_ _autotools_MGWCLASS_stage1_
 #  The full package descriptor, equivalent to PN-PV-PR.
 #****
 
-### FIXME: parse name using new tool. set PS appropriately.
-###        implicit subsystem versioning (for msys-)
-
-# argv[1] may or may not include the .mgwport extension
-            PF=${argv[1]##*/}
-declare -r  PF=${PF%.mgwport}
-declare -r  PS=mingw32
 # these must be defined now to be available in SRC_URI
 #
 # PN must begin with letter, may contain hyphens but must be followed by letter
@@ -340,31 +399,27 @@ declare -ar PVP=(${PV//[-\._]/ });
 declare -r  PV=(${PV} ${PVP[*]});
 declare -r  PV_MAJ=${PV[1]};
 declare -r  PV_MAJ_MIN="${PV[1]}.${PV[2]}";
+            PS=""    # Subsystem         (autoset below)
+            PSV=""   # Subsystem Version (usually only msys; autoset below)
+declare     PSB=""   # Subsystem Build   (#, rare)
+declare     PRS=""   # Release Status    (alpha, pre, cvs, ...)
+declare     PRR=""   # Release Reference (#, YYYYMMDD, etc)
 
-declare -r  mgwportfile=${PF}.mgwport;
-
-_topdir=${argv[1]%/*};
-
-if [ "x${_topdir}" = "x${argv[1]}" ]
-then
-	if [ -f /mingw/src/${mgwportfile} ]
-	then
-		_topdir=/mingw/src;
-	elif [ -f /usr/src/${mgwportfile} ]
-	then
-		_topdir=/usr/src;
-	else
-		_topdir=.;
-	fi
-fi
-
-declare -r top=$(cd ${_topdir}; pwd);
-unset _topdir;
-
-if [ ! -e ${top}/${mgwportfile} ]
-then
-	error "${mgwportfile} not found.";
-fi
+### set package subsystem, mgwport filename
+case "${MPFLAVOR}" in
+  *mingw* )
+	declare -r PS=mingw32
+	declare -r PSV=""
+	;;
+  *msys* )
+	declare -r PS=msys
+	case $(uname -s) in
+	  MSYS* ) _sysver=$(uname -r)
+		  declare    PSV=${_sysver%%\(*} ;;
+	  * )     declare    PSV=1.0.17 ;; # FIXME default
+	esac
+	;;
+esac
 
 ### load .mgwport
 source ${top}/${mgwportfile} || error "could not read ${mgwportfile}"
@@ -475,10 +530,32 @@ done
 readonly _src_orig_patches;
 unset _patch_uri;
 
-declare -r mgw_patchfile=${PF}.mgw.patch;
-declare -r src_patchfile=${PF}.src.patch;
+case ${MPFLAVOR} in
+*mingw* ) declare -r mgw_patchfile=${PF}.mgw.patch ;;
+*msys*  ) declare -r mgw_patchfile=${PF}.msys.patch ;;
+esac
+declare -r  src_patchfile=${PF}.src.patch;
 
-declare -ar pkg_name=(${PKG_NAMES:-${PN}});
+declare -ar pkg_ctype=(${PKG_COMPTYPES:-bin});
+declare -r  pkg_ct_count=${#pkg_ctype[*]};
+
+_pkg_name=(${PKG_NAMES:-${PN}});
+_pkg_count=${#_pkg_name[*]};
+if (( $_pkg_count != $pkg_ct_count ))
+then
+	if (( $_pkg_count == 1 ))
+	then
+		# assume multiple packages with same basename
+		while (( $_pkg_count < $pkg_ct_count ))
+		do
+			_pkg_name[$_pkg_count]="${_pkg_name[0]}"
+			_pkg_count=${#_pkg_name[*]};
+		done
+	else
+		error "PKG_NAMES and PKG_COMPTYPES must have same number of entries"
+	fi
+fi
+declare -ar pkg_name=(${_pkg_name[*]});
 declare -r  pkg_count=${#pkg_name[*]};
 
 ################################################################################

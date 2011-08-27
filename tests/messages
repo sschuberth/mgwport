@@ -12,6 +12,7 @@ cat > foo-1.2.3-4.mgwport <<-_EOF
 	DESCRIPTION="mgwport messages test package"
 	HOMEPAGE="http://sourceware.org/cygwinports/"
 	SRC_URI="http://sourceware.org/cygwinports/\${P}.ABC"
+	PKG_COMPTYPES="bin doc lic"
 	_EOF
 
 ${top_builddir}/bin/mgwport-inplace foo-1.2.3-4.mgwport info

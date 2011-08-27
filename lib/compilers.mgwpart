@@ -152,7 +152,10 @@ STRIP="strip"
 
 # system triplets
 declare    CBUILD=$(__canonicalize_triplet $(${_privgnuconfigdir}/config.guess))
-declare    CHOST="i686-pc-mingw32";
+case "${MPFLAVOR}" in
+*mingw* )  declare CHOST=i686-pc-mingw32 ;;
+*msys* )   declare CHOST=i686-pc-msys ;;
+esac
 declare    CTARGET=${CHOST};
 declare    CROSS_HOST="";
 declare    CROSS_SYSROOT="";
@@ -188,5 +191,16 @@ case ${CHOST} in
 	GCJFLAGS="${GCJFLAGS} -mms-bitfields"
 	OBJCFLAGS="${OBJCFLAGS} -mms-bitfields"
 	OBJCXXFLAGS="${OBJCXXFLAGS} -mms-bitfields"
+	;;
+  *-pc-msys* )
+	opt_flags="-O3 -fno-unit-at-a-time -march=i386 -mtune=i686 -finline-functions"
+	CPPFLAGS="${CPPFLAGS} -D__CYGWIN__"
+	CFLAGS="${CFLAGS} ${opt_flags}"
+	CXXFLAGS="${CXXFLAGS} ${opt_flags}"
+	F77FLAGS="${F77FLAGS} ${opt_flags}"
+	FCFLAGS="${FCFLAGS} ${opt_flags}"
+	GCJFLAGS="${GCJFLAGS} ${opt_flags}"
+	OBJCFLAGS="${OBJCFLAGS} ${opt_flags}"
+	OBJCXXFLAGS="${OBJCXXFLAGS} ${opt_flags}"
 	;;
 esac

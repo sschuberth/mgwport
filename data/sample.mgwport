@@ -2,6 +2,12 @@ DESCRIPTION="Next-generation MinGW/MSYS packaging application"
 HOMEPAGE="http://sourceware.org/cygwinports/"
 SRC_URI="mirror://sourceforge/cygwin-ports/${P}.tar.xz"
 
+PKG_COMPTYPES="bin doc lic"
+PKG_CONTENTS[0]='bin/mgwport lib/ share/mgwport/ etc/'
+PKG_CONTENTS[1]="--exclude=share/doc/${PN}/${PV}/COPYING
+	share/doc share/man share/mime/packages/mgwport.xml"
+PKG_CONTENTS[2]="share/doc/${PN}/${PV}/COPYING"
+
 # We use the standard src_compile and src_test.
 
 src_install() {

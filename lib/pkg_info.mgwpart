@@ -21,14 +21,26 @@
 ################################################################################
 
 __show_info() {
+	__pkg_pkgnames
+	__pkg_pkgids
+	__pkg_pkgsrcname
+	__pkg_pkgsrcid
 	cat <<-_EOF
 	mgwport package information
-	    Package name:       ${PN}
-	    Package version:    ${PV}
-	    Package subsystem:  ${PS}
-	    MinGW/MSYS release: ${PR}
+	    Package Name:       ${PN}
+	    Package Version:    ${PV}
+	    Package Build:      ${PR:-<unspecified>}
+	    Subsystem Name:     ${PS}
+	    Subsystem Version:  ${PSV:-<unspecified>}
+	    Subsystem Build:    ${PSB:-<unspecified>}
+	    Release Status:     ${PRS:-<unspecified>}
+	    Release Reference:  ${PRR:-<unspecified>}
 	    Homepage:           ${HOMEPAGE}
 	    Description:        ${DESCRIPTION}
+	    Component IDs:      ${__pkgids[*]}
+	    Component Tarnames: ${__pkgnames[*]}
+	    Source ID:          ${__pkgsrcid}
+	    Source Tarname:     ${__pkgsrcname}
 		_EOF
 }
 

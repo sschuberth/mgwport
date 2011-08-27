@@ -143,6 +143,17 @@ case ${CHOST} in
 	OBJCFLAGS="${OBJCFLAGS} -mms-bitfields"
 	OBJCXXFLAGS="${OBJCXXFLAGS} -mms-bitfields"
 	;;
+*-pc-msys* )
+        opt_flags="-O3 -fno-unit-at-a-time -march=i386 -mtune=i686 -finline-functions"
+        CPPFLAGS="${CPPFLAGS} -D__CYGWIN__"
+        CFLAGS="${CFLAGS} ${opt_flags}"
+        CXXFLAGS="${CXXFLAGS} ${opt_flags}"
+        F77FLAGS="${F77FLAGS} ${opt_flags}"
+        FCFLAGS="${FCFLAGS} ${opt_flags}"
+        GCJFLAGS="${GCJFLAGS} ${opt_flags}"
+        OBJCFLAGS="${OBJCFLAGS} ${opt_flags}"
+        OBJCXXFLAGS="${OBJCXXFLAGS} ${opt_flags}"
+        ;;
 esac
 
 if ! check_tool gcc || ! check_tool strip

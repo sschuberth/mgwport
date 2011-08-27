@@ -20,17 +20,121 @@
 #
 ################################################################################
 
+declare __pkgid_value=""
+__pkg_pkgid() {
+	local -i n=$1
+	local id=""
+	case "${MPFLAVOR}" in
+	*mingw* ) id="mingw32";;
+	*msys*  ) id="msys";;
+	esac
+	id="${id}-${pkg_name[$n]}-${pkg_ctype[$n]}"
+	__pkgid_value="${id}"
+}
+
+declare __pkgname_value=""
+__pkg_pkgname() {
+	local -i n=$1
+	local id=""
+	id="${pkg_name[$n]}-${PVR}"
+	id="${id}-${PS}${PSV:+-}${PSV}${PSB:+-}${PSB}"
+	id="${id}${PRS:+-}${PRS}${PRR:+-}${PRR}"
+	id="${id}-${pkg_ctype[$n]}"
+	__pkgname_value="$id"
+}
+
+declare -a __pkgids
+__pkg_pkgids() {
+	local -i n=0
+	unset __pkgids[*]
+
+	while (( n < pkg_count ))
+	do
+		__pkg_pkgid $n
+		__pkgids[$n]="$__pkgid_value"
+		n+=1
+	done
+}
+
+declare -a __pkgnames
+__pkg_pkgnames() {
+	local -i n=0
+	unset __pkgnames[*]
+
+	while (( n < pkg_count ))
+	do
+		__pkg_pkgname $n
+		__pkgnames[$n]="$__pkgname_value"
+		n+=1
+	done
+}
+
+declare __pkgsrcid=""
+__pkg_pkgsrcid() {
+	local id=""
+	case "${MPFLAVOR}" in
+	*mingw* ) id="mingw32";;
+	*msys*  ) id="msys";;
+	esac
+	__pkgsrcid="${id}-${PN}-src"
+}
+
+declare __pkgsrcname=""
+__pkg_pkgsrcname() {
+	local id=""
+	id="${PN}-${PVR}"
+	id="${id}-${PS}${PSV:+-}${PSV}${PSB:+-}${PSB}"
+	id="${id}${PRS:+-}${PRS}${PRR:+-}${PRR}"
+	id="${id}-src"
+	__pkgsrcname="$id"
+}
+
+
 __pkg_binpkg() {
 	local -i n=0;
+	local d;
 	local pkg_contents;
 	local pkg_contents_var;
 	local pkg_list;
 
-	pkg_list=(${PKG_LISTS:-${PKG_NAMES}});
+	__pkg_pkgids
+	__pkg_pkgnames
+
+	pkg_list=(${PKG_LISTS:-${__pkgids[*]}});
 
 	cd ${D};
-
 	__step "Creating binary package(s)";
+
+	# Special handling: for mingw packages, we tar from
+	# inside the /mingw directory.  For msys packages, we
+	# tar from inside the /usr directory -- but there might
+	# be top-level /etc and /var dirs...which we need to
+	# relocate underneath /usr.  We do this as part of pkg,
+	# not postinstall, so that we can guarantee it is always
+	# the VERY last thing before creating the tarballs.
+	case "${MPFLAVOR}" in
+	*msys*  )
+		inform "Rearranging install directory for MSYS"
+		# no need to use $(__mpflavor_prefix) since we are
+		# already inside an msys case. Besides, it has a
+		# leading /.
+		for d in *
+		do
+			if [ "$d" == "usr" ]
+			then
+				continue
+			else
+				if [ -e "usr/$d" ]
+				then
+	# just punt. This should never happen
+	error "Can't move $d to usr/$d: already exists"
+				fi
+				verbose mv "$d" usr/
+			fi
+		done ;;
+	esac
+	# has a leading /, so fake it out...
+	cd .$(__mpflavor_prefix)
 
 	if defined PKG_CONTENTS[*]
 	then
@@ -52,9 +156,9 @@ __pkg_binpkg() {
 	n=0
 	while (( n < pkg_count ))
 	do
-		__step "${pkg_name[${n}]}-${PVR}.tar.bz2";
+		__step "${__pkgnames[$n]}.tar.lzma";
 
-		pkg_contents_var=${pkg_name[${n}]//[-+\.]/_}_CONTENTS;
+		pkg_contents_var=${__pkgids[${n}]//[-+\.]/_}_CONTENTS;
 
 		if defined ${pkg_contents_var}
 		then
@@ -74,11 +178,11 @@ __pkg_binpkg() {
 
 		if defined pkg_contents
 		then
-			tar jcvf ${top}/${pkg_name[${n}]}-${PVR}.tar.bz2 ${pkg_contents} \
-				|| error "Binary package creation failed: ${pkg_name[${n}]}"
+			tar --lzma -cvf ${top}/${__pkgnames[${n}]}.tar.lzma ${pkg_contents} \
+				|| error "Binary package creation failed: ${__pkgids[${n}]}"
 		else
 			inform "Creating empty package"
-			bzip2 < /dev/null > ${top}/${pkg_name[${n}]}-${PVR}.tar.bz2 \
+			lzma < /dev/null > ${top}/${__pkgnames[${n}]}.tar.lzma \
 				|| error "Empty package creation failed"
 		fi
 		echo;
@@ -91,14 +195,18 @@ __pkg_pkgcheck() {
 	local tmp1="${T}/tmptar.log";
 	local tmp2="${T}/tmpfind.log";
 
-	cd ${D};
+	__pkg_pkgids
+	__pkg_pkgnames
+
+	cd ${D}$(__mpflavor_prefix)
+
 	__step "Checking packages for missing or duplicate files";
 
 	rm -f ${tmp1} ${tmp2};
 
-	while defined pkg_name[${n}]
+	while defined __pkgnames[${n}]
 	do
-		tar tjf ${top}/${pkg_name[${n}]}-${PVR}.tar.bz2 | grep -Ev "/$" >> ${tmp1}
+		tar --lzma -tf ${top}/${__pkgnames[${n}]}.tar.lzma | grep -Ev "/$" >> ${tmp1}
 		n+=1
 	done
 
@@ -320,56 +428,69 @@ __gpg_sign() {
 }
 
 __pkg_srcpkg() {
-	local src;
+	local src spkgdir2;
+	__pkg_pkgsrcid
+	__pkg_pkgsrcname
 
 	rm -fr ${spkgdir}/*;
+	mkdir ${spkgdir}/${__pkgsrcname}
+	spkgdir2=${spkgdir}/${__pkgsrcname}
 
 	echo;
 	__step "Creating source patches";
 
 	__pkg_diff;
 
-	cp ${patchdir}/${mgw_patchfile} ${spkgdir};
+	cp ${patchdir}/${mgw_patchfile} ${spkgdir2};
 
 	if [ "x$(file -b ${patchdir}/${src_patchfile})" != "xempty" ]
 	then
-		cp ${patchdir}/${src_patchfile} ${spkgdir};
+		cp ${patchdir}/${src_patchfile} ${spkgdir2};
 	fi
 
 	__step "Creating source package";
 
-	cp ${top}/${PF}.mgwport ${spkgdir};
+	case "${PS}" in
+	mingw32) cp ${top}/${PF}.mgwport ${spkgdir2};;
+	msys)    cp ${top}/${PF}.msysport ${spkgdir2};;
+	esac
 
 	for src in ${_src_orig_pkgs} ${_src_orig_patches}
 	do
-		cp ${top}/${src} ${spkgdir};
+		cp ${top}/${src} ${spkgdir2};
 	done
 
-	cd ${spkgdir};
+	cd ${spkgdir2};
 
 	if __arg_bool SIG
 	then
 		if check_prog gpg
 		then
-			__gpg_sign ${spkgdir}/${PF}.mgwport "MGWPORT SCRIPT";
-			__gpg_sign ${spkgdir}/${mgw_patchfile} "MINGW/MSYS PATCH";
+			case "${PS}" in
+			mingw32) __gpg_sign ${spkgdir2}/${PF}.mgwport "MGWPORT SCRIPT";;
+			msys)    __gpg_sign ${spkgdir2}/${PF}.msysport "MGWPORT SCRIPT";;
+			esac
+			__gpg_sign ${spkgdir2}/${mgw_patchfile} "MINGW/MSYS PATCH";
 
 			if [ -f ${spkgdir}/${src_patchfile} ]
 			then
-				__gpg_sign ${spkgdir}/${src_patchfile} "SOURCE PATCH";
+				__gpg_sign ${spkgdir2}/${src_patchfile} "SOURCE PATCH";
 			fi
 		else
 			inform "gnupg must be installed in order to make signatures.";
 		fi
 	fi
 
-	tar jcvf ${top}/${PF}-src.tar.bz2 * || error "Source package creation failed"
+	cd ${spkgdir}
+	tar --lzma -cvf ${top}/${__pkgsrcname}.tar.lzma ${__pkgsrcname} || error "Source package creation failed"
 }
 
 __pkg_dist() {
 	local -i n;
-	local -a pkg_hint;
-	local distsubdir;
+	__pkg_pkgids
+	__pkg_pkgnames
+	__pkg_pkgsrcid
+	__pkg_pkgsrcname
 
 	rm -fr ${distdir}/*;
 
@@ -377,48 +498,19 @@ __pkg_dist() {
 
 	mkdir -p ${distdir}/${PN};
 
-	cp ${top}/${PF}-src.tar.bz2 ${distdir}/${PN};
-
-	if (( pkg_count == 1 )) && [ ${pkg_name[0]} = ${PN} ]
-	then
-		pkg_hint=(${PKG_HINTS:-setup})
-	else
-		pkg_hint=(${PKG_HINTS:-${PKG_NAMES}})
-	fi
-
-	if (( pkg_count != ${#pkg_hint[*]} ))
-	then
-		error "Different number of packages defined in PKG_NAMES and PKG_HINTS";
-	fi
+	cp ${top}/${__pkgsrcname}.tar.lzma ${distdir}/${PN};
 
 	n=0;
-	while defined pkg_name[${n}]
+	while defined __pkgnames[${n}]
 	do
-		case ${pkg_name[${n}]} in
-			${PN})  distsubdir="" ;;
-			*)      distsubdir=${pkg_name[${n}]} ;;
-		esac
+		mkdir -p ${distdir}/${PN};
 
-		mkdir -p ${distdir}/${PN}/${distsubdir};
-
-		cp ${top}/${pkg_name[${n}]}-${PVR}.tar.bz2 ${distdir}/${PN}/${distsubdir};
-
-		if [ -f ${M}/${pkg_hint[${n}]%.hint}.hint ]
-		then
-			cp ${M}/${pkg_hint[${n}]%.hint}.hint ${distdir}/${PN}/${distsubdir}/setup.hint;
-		else
-			warning "${pkg_hint[${n}]%.hint}.hint is missing";
-		fi
+		cp ${top}/${__pkgnames[${n}]}.tar.lzma ${distdir}/${PN};
 
 		n+=1;
 	done
-
-	# e.g. split library package w/o PN in PKG_NAMES
-	if [ ! -f ${distdir}/${PN}/setup.hint -a -f ${M}/${PN}.hint ]
-	then
-		cp ${M}/${PN}.hint ${distdir}/${PN}/setup.hint
-	fi
 }
 
 # protect functions
 readonly -f __pkg_binpkg __pkg_diff __gpg_sign __pkg_srcpkg __pkg_dist
+readonly -f __pkg_pkgids __pkg_pkgnames __pkg_pkgsrcid __pkg_pkgsrcname
