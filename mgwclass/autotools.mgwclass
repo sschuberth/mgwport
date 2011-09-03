@@ -428,6 +428,7 @@ mgwconf() {
 	local f;
 	local foo_config;
 	local prefix;
+	local nprefix;
 
 #****v* mgwconf/MGWCONF_SOURCE
 #  DESCRIPTION
@@ -472,7 +473,15 @@ mgwconf() {
 		fi
 	done
 
-	prefix=$(__host_nprefix)
+	prefix=$(__host_prefix)
+	nprefix=$(__host_nprefix)
+	if [ "${prefix}" != "${nprefix}" ] && defined _MGWPORT_RESTRICT_native_prefix_
+	then
+		inform "Using prefix=${prefix} rather than ${nprefix} by request."
+	else
+		# This is actually the default case
+		prefix="${nprefix}"
+	fi
 
 	# Set default configure arguments
 	confargs="--prefix=${prefix} --exec-prefix=${prefix} --bindir=${prefix}/bin \

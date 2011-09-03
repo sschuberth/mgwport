@@ -272,7 +272,7 @@ __prepdoc() {
 		*-*-msys*)  insinto $(__mpflavor_prefix)/share/doc/MSYS  ;;
 		* )         insinto $(__mpflavor_prefix)/share/doc/UNKNOWN ;;
 		esac
-		newins ${M}/README ${PN}.README;
+		newins ${M}/README ${PN}.README.txt;
 	elif [ -e ${M}/${PN}.README ]
 	then
 		case ${MPFLAVOR} in
@@ -280,41 +280,30 @@ __prepdoc() {
 		*-*-msys*)  insinto $(__mpflavor_prefix)/share/doc/MSYS  ;;
 		* )         insinto $(__mpflavor_prefix)/share/doc/UNKNOWN ;;
 		esac
-		doins ${M}/${PN}.README;
+		newins ${M}/${PN}.README ${PN}.README.txt;
 	elif [ -e "${S}/MINGW-PATCHES/README" \
 		-a "${PN}" == "mgwport" \
 		-a "${PS}" == "msys" ]
 	then
 		# special case for bootstrapping mgwport on msys
 		insinto $(__mpflavor_prefix)/share/doc/MSYS
-		newins ${S}/MINGW-PATCHES/README ${PN}.README;
+		newins ${S}/MINGW-PATCHES/README ${PN}.README.txt;
 	else
 		warning "MinGW/MSYS README is missing"
 	fi
 
 	pkg_hint=(${PKG_HINTS})
 
-	while defined pkg_name[${n}]
+	while defined pkg_name[${n}] && defined pkg_ctype[${n}]
 	do
-		if [ -f ${M}/${pkg_name[${n}]}.README ]
+		if [ -f ${M}/${pkg_name[${n}]}-${pkg_name[${n}]}.README ]
 		then
 			case ${MPFLAVOR} in
 			*-*-mingw*) insinto $(__mpflavor_prefix)/share/doc/MinGW ;;
 			*-*-msys*)  insinto $(__mpflavor_prefix)/share/doc/MSYS  ;;
 			* )         insinto $(__mpflavor_prefix)/share/doc/UNKNOWN ;;
 			esac
-			doins ${M}/${pkg_name[${n}]}.README;
-		elif defined pkg_hint[${n}]
-		then
-			if [ -f ${M}/${pkg_hint[${n}]}.README ]
-			then
-				case ${MPLAVOR} in
-				*-*-mingw*) insinto $(__mpflavor_prefix)/share/doc/MinGW ;;
-				*-*-msys*)  insinto $(__mpflavor_prefix)/share/doc/MSYS  ;;
-				* )         insinto $(__mpflavor_prefix)/share/doc/UNKNOWN ;;
-				esac
-				doins ${M}/${pkg_hint[${n}]}.README
-			fi
+			doins ${M}/${pkg_name[${n}]}-${pkg_ctype[${n}]}.README;
 		fi
 
 		n+=1;
@@ -494,14 +483,6 @@ __prepinfo() {
 	if [ -d ${D}$(__host_prefix)/share/info ]
 	then
 		rm -f ${D}$(__host_prefix)/share/info/dir
-
-		echo "Compressing info pages:";
-
-		for infopage in $(find ${D}$(__host_prefix)/share/info -type f -name '*.info*' ! -name '*.gz' ! -name '*.bz2')
-		do
-			echo "        ${infopage##*/}";
-			gzip -q ${infopage};
-		done
 	fi
 }
 

@@ -826,6 +826,10 @@ mgwinstall() {
 #****
 	prefix=$(__host_prefix)
 	nprefix=$(__host_nprefix)
+	if defined _MGWPORT_RESTRICT_native_prefix_
+	then
+		nprefix=$prefix
+	fi
 
 	if __arg_bool USE_DESTDIR true && test "${prefix}" == "${nprefix}"
 	then
@@ -844,6 +848,7 @@ mgwinstall() {
 			docdir=${D}${prefix}/share/doc/${PN} \
 			infodir=${D}${prefix}/share/info \
 			mandir=${D}${prefix}/share/man \
+			docdir=${D}${prefix}/share/doc/${PN}/${PV} \
 			localstatedir=${D}${prefix%$(__mpflavor_prefix)}$(__mpflavor_localstatedir) \
 			sysconfdir=${D}${prefix%$(__mpflavor_prefix)}$(__mpflavor_sysconfdir) \
 			"${@}" \

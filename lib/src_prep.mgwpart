@@ -221,7 +221,7 @@ mgwpatch() {
 		patchlevel=0;
 
 		case ${patchfile_name} in
-			${PF}.mingw.patch)
+			${PF}.mgw.patch|${PF}.msys.patch)
 				if [ "${S}" = "${srcdir}" ]
 				then
 					patchlevel=1;
@@ -382,8 +382,6 @@ __src_prep() {
 	rsync -aq --delete-before ${origsrcdir}/ ${srcdir}/;
 
 	mkdir -p ${M};
-	ln -sfn ${M} ${workdir}/MINGW-PATCHES;
-
 	cd ${S};
 
 	if [ -f ${top}/${mgw_patchfile} ]

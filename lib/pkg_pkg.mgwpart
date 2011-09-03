@@ -178,7 +178,8 @@ __pkg_binpkg() {
 
 		if defined pkg_contents
 		then
-			tar --lzma -cvf ${top}/${__pkgnames[${n}]}.tar.lzma ${pkg_contents} \
+			tar --hard-dereference --lzma -cvf ${top}/${__pkgnames[${n}]}.tar.lzma \
+				${pkg_contents} \
 				|| error "Binary package creation failed: ${__pkgids[${n}]}"
 		else
 			inform "Creating empty package"
@@ -482,7 +483,8 @@ __pkg_srcpkg() {
 	fi
 
 	cd ${spkgdir}
-	tar --lzma -cvf ${top}/${__pkgsrcname}.tar.lzma ${__pkgsrcname} || error "Source package creation failed"
+	tar --hard-dereference --lzma -cvf ${top}/${__pkgsrcname}.tar.lzma \
+		${__pkgsrcname} || error "Source package creation failed"
 }
 
 __pkg_dist() {
