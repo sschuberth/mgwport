@@ -722,11 +722,12 @@ __prep_symlinks() {
 }
 
 __prep_libtool_modules() {
-	local ltlibs ltlibdir ltlibname ltversion
+	local ltlibs ltlibdir ltlibname ltversion ltlocation
 	local dlname origdlname library_names old_library inherited_linker_flags \
 	      dependency_libs weak_library_names current age revision \
 		  installed shouldnotlink dlopen dlpreopen libdir rep_requires
 
+	__maybe_relocate
 	pushd ${D}
 
 	ltlibs="$(find * -name '*.la')"
@@ -738,8 +739,8 @@ __prep_libtool_modules() {
 	fi
 
 	echo "Fixing libtool modules:"
-
-	ltversion="$(grep '^# libtool (GNU' $(__mpflavor_prefix)/bin/libtool | cut -d ' ' -f 2-)"
+	ltlocation=$(cd /; which libtool) # avoid ./libtool
+	ltversion="$(grep '^# libtool (GNU' ${ltlocation} | cut -d ' ' -f 2-)"
 
 	for lib_la in ${ltlibs}
 	do
@@ -753,6 +754,15 @@ __prep_libtool_modules() {
 		source ${lib_la}
 
 		ltlibdir=${lib_la%/*}
+
+		# Before doing anything else, remove references to _RELOCDIR
+		if inherited relocatable
+		then
+			/usr/bin/cat ${lib_la} |\
+				/usr/bin/sed -e "s:${_RELOCDIR}::g" >\
+				${lib_la}.new && \
+			/usr/bin/mv ${lib_la}.new ${lib_la}
+		fi
 
 		# check that all library members were installed
 		for l in dlname library_names old_library

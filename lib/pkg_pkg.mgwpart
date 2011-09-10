@@ -96,6 +96,7 @@ __pkg_binpkg() {
 	local pkg_contents;
 	local pkg_contents_var;
 	local pkg_list;
+	__maybe_relocate
 
 	__pkg_pkgids
 	__pkg_pkgnames
@@ -114,6 +115,7 @@ __pkg_binpkg() {
 	# the VERY last thing before creating the tarballs.
 	case "${MPFLAVOR}" in
 	*msys*  )
+		pushd ${_RELOCDIR};
 		inform "Rearranging install directory for MSYS"
 		# no need to use $(__mpflavor_prefix) since we are
 		# already inside an msys case. Besides, it has a
@@ -131,9 +133,10 @@ __pkg_binpkg() {
 				fi
 				verbose mv "$d" usr/
 			fi
-		done ;;
+		done
+		popd ;;
 	esac
-	# has a leading /, so fake it out...
+	# has a leading /, so fake it out...(includes _RELOCDIR):
 	cd .$(__mpflavor_prefix)
 
 	if defined PKG_CONTENTS[*]
@@ -195,11 +198,12 @@ __pkg_pkgcheck() {
 	local -i n=0;
 	local tmp1="${T}/tmptar.log";
 	local tmp2="${T}/tmpfind.log";
+	__maybe_relocate
 
 	__pkg_pkgids
 	__pkg_pkgnames
 
-	cd ${D}$(__mpflavor_prefix)
+	cd ${D}$(__mpflavor_prefix); # this includes _RELOCDIR
 
 	__step "Checking packages for missing or duplicate files";
 
@@ -416,7 +420,12 @@ __pkg_diff() {
 			> ${patchdir}/${src_patchfile} || true;
 	fi
 
-	sed -e '/^diff -u/d' -i ${patchdir}/${mgw_patchfile} ${patchdir}/${src_patchfile};
+	for f in ${patchdir}/${mgw_patchfile} ${patchdir}/${src_patchfile}
+	do
+		chmod +w "${f}"
+		sed -e '/^diff -u/d' < "${f}" > "${f}.new" &&
+			mv "${f}.new" "${f}"
+	done
 
 	diffstat -p${difflevel} ${patchdir}/${mgw_patchfile} ${patchdir}/${src_patchfile};
 }

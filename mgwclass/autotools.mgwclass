@@ -522,6 +522,11 @@ mgwconf() {
 		export ac_cv_func_mmap_fixed_mapped=yes ;;
 	esac
 
+	if inherited relocatable
+	then
+		confargs+=" --enable-relocatable"
+	fi
+
 #****v* mgwconf/MGWCONF_ARGS
 #  DESCRIPTION
 #  Additional flags to pass to configure, as a string.

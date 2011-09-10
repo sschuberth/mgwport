@@ -1,0 +1,12 @@
+################################################################################
+#
+# relocatable.mgwclass - Inheriting this mgwclass indicates that the package
+#     uses Bruno Haible's relocation framework (e.g. libiconv and gettext,
+#     with --enable-relocatable). There is very little content in this file,
+#     as its main utility is to serve as an indicator.
+#
+################################################################################
+if inherited cross
+then
+	error "Must inherit relocatable before cross"
+fi

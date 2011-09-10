@@ -5,6 +5,7 @@ dist_mgwclass_DATA = 			\
 	cross.mgwclass				\
 	cvs.mgwclass				\
 	git.mgwclass				\
+	relocatable.mgwclass			\
 	svn.mgwclass				\
 	tcl.mgwclass				\
 	toolchain.mgwclass			\

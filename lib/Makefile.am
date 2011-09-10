@@ -13,5 +13,6 @@ dist_pkglib_DATA = \
 	src_postinst.mgwpart		\
 	src_prep.mgwpart			\
 	src_test.mgwpart			\
+	relocatable.mgwpart			\
 	syntax.mgwpart				\
 	$(NULL)

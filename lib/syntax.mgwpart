@@ -200,6 +200,7 @@ __cross_compiling_error() {
 
 __host_prefix() {
 	local prefix sysroot
+	__maybe_relocate
 
 	if inherited cross
 	then
@@ -210,8 +211,8 @@ __host_prefix() {
 
 	# FIXME: certainly other exceptions exist?
 	case ${CHOST} in
-		*-*-mingw*)       prefix=${sysroot}/mingw ;;
-		*)                prefix=${sysroot}/usr ;;
+		*-*-mingw*)       prefix=${_RELOCDIR}${sysroot}/mingw ;;
+		*)                prefix=${_RELOCDIR}${sysroot}/usr ;;
 	esac
 
 	echo -n ${prefix}
@@ -223,6 +224,8 @@ __host_prefix() {
 # provided by __host_prefix.
 __host_nprefix() {
 	local prefix
+	__maybe_relocate
+
 	if inherited cross
 	then
 		__host_prefix
@@ -234,12 +237,21 @@ __host_nprefix() {
 				# a special case to handle "cross" builds that
 				# don't declare themselves -- specifically for
 				# mgwport's own "bootstrap" test.
-				case $(uname -s) in
-					MINGW*) prefix=$(cd /mingw && pwd -W) ;;
-					*)      prefix="C:/MinGW" ;;
-				esac
+				if inherited relocatable
+				then
+					# Can't use windows form of ${_RELOCDIR}/mingw
+					# because it MIGHT contain spaces, depending on
+					# the value of $TMPDIR.  So, since it doesn't
+					# REALLY matter anyway, just punt:
+					prefix="$(echo ${_RELOCDIR} | sed -e 's|/tmp|C:/Temp|')/MinGW"
+				else
+					case $(uname -s) in
+						MINGW*) prefix=$(cd /mingw && pwd -W) ;;
+						*)      prefix="C:/MinGW" ;;
+					esac
+				fi
 				;;
-			*)		__host_prefix ; return ;;
+			*)	__host_prefix ; return ;;
 		esac
 	fi
 
@@ -272,9 +284,11 @@ __target_prefix() {
 #****
 __mpflavor_prefix() {
 	local prefix
+	__maybe_relocate
+
 	case ${MPFLAVOR} in
-		*-*-mingw*)       prefix=/mingw ;;
-		*)                prefix=/usr ;;
+		*-*-mingw*)       prefix=${_RELOCDIR}/mingw ;;
+		*)                prefix=${_RELOCDIR}/usr ;;
 	esac
 	echo -n ${prefix}
 }
@@ -291,9 +305,11 @@ __mpflavor_prefix() {
 #****
 __mpflavor_sysconfdir() {
 	local sysconfdir
+	__maybe_relocate
+
 	case ${MPFLAVOR} in
-		*-*-mingw*)       sysconfdir=/mingw/etc ;;
-		*)                sysconfdir=/etc;;
+		*-*-mingw*)       sysconfdir=${_RELOCDIR}/mingw/etc ;;
+		*)                sysconfdir=${_RELOCDIR}/etc;;
 	esac
 	echo -n ${sysconfdir}
 }
@@ -310,9 +326,11 @@ __mpflavor_sysconfdir() {
 #****
 __mpflavor_localstatedir() {
 	local localstatedir
+	__maybe_relocate
+
 	case ${MPFLAVOR} in
-		*-*-mingw*)       localstatedir=/mingw/var;;
-		*)                localstatedir=/var;;
+		*-*-mingw*)       localstatedir=${_RELOCDIR}/mingw/var;;
+		*)                localstatedir=${_RELOCDIR}/var;;
 	esac
 	echo -n ${localstatedir}
 }

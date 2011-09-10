@@ -45,7 +45,8 @@ __show_info() {
 }
 
 __list_files() {
-	pushd ${D}
+	__maybe_relocate
+	pushd ${D}${_RELOCDIR}
 	find . ! -type d | sed 's!^\.!  !' | sort
 	popd
 }
@@ -54,8 +55,9 @@ __list_deps() {
 	local d
 	local nativelibs netlibs netimps tclibs tcgcclibdir tcgccsysroot
 	local os_path="${PATH}"
+	__maybe_relocate
 
-	pushd ${D}
+	pushd ${D}${_RELOCDIR}
 
 #****v* Information/DEPS_PATH
 #  DESCRIPTION
@@ -77,7 +79,7 @@ __list_deps() {
 		fi
 	done
 
-	export PATH+="${D}$(__mpflavor_prefix)/bin:${os_path}";
+	export PATH+="${D}$(__host_prefix)/bin:${os_path}";
 
 	if __cross_compiling && check_target_tool gcc
 	then

@@ -35,6 +35,7 @@ __finish() {
 
 	__step "Removing work directory NOW.";
 
+	__finish_relocate
 	rm -rf ${workdir};
 
 	__step "Finished.";

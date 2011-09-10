@@ -155,6 +155,11 @@ docinto() {
 #  subdirectory thereof specified by the previous call to docinto.
 #****
 dodoc() {
+	# Can't use $(__host_prefix) here, because "doc" files shouldn't go
+	# into ${sysroot}.  But, do respect reloc -- which comes "for free"
+	# because __mpflavor_prefix has _RELOCDIR.
+	__maybe_relocate
+
 	case "${_docinto_dir}" in
 		'')	docdir=$(__mpflavor_prefix)/share/doc/${PN}/${PV} ;;
 		/*)	docdir=$(__mpflavor_prefix)/share/doc${_docinto_dir} ;;
@@ -189,6 +194,11 @@ dodoc() {
 #  specified by the previous call to docinto, with the given new name.
 #****
 newdoc() {
+	# Can't use $(__host_prefix) here, because "doc" files shouldn't go
+	# into ${sysroot}.  But, do respect reloc -- which comes "for free"
+	# because __mpflavor_prefix has _RELOCDIR.
+	__maybe_relocate
+
 	case "${_docinto_dir}" in
 		'')	docdir=$(__mpflavor_prefix)/share/doc/${PN}/${PV} ;;
 		/*)	docdir=$(__mpflavor_prefix)/share/doc${_docinto_dir} ;;
@@ -207,13 +217,15 @@ newdoc() {
 #  Specifies the directory under $D into which doexe and newexe will install.
 #****
 exeinto() {
+	__maybe_relocate
+
 	if (( $# != 1 ))
 	then
 		error "exeinto accepts exactly one argument";
 	fi
 
-	dodir ${1};
-	_exeinto_dir=${1};
+	dodir ${_RELOCDIR}${1##${_RELOCDIR}};
+	_exeinto_dir=${_RELOCDIR}${1##${_RELOCDIR}};
 }
 
 #****I* Installing/doexe
@@ -259,13 +271,15 @@ newexe() {
 #  Specifies the directory under $D into which doins and newins will install.
 #****
 insinto() {
+	__maybe_relocate
+
 	if (( $# != 1 ))
 	then
 		error "insinto accepts exactly one argument";
 	fi
 
-	dodir ${1};
-	_insinto_dir=${1};
+	dodir ${_RELOCDIR}${1##${_RELOCDIR}};
+	_insinto_dir=${_RELOCDIR}${1##${_RELOCDIR}};
 }
 
 #****I* Installing/doins
@@ -613,6 +627,7 @@ dosym() {
 	local _argv=("dosym" ${@})
 	local _argc=$#
 	local ln_s
+	local fixabs=
 
 	if ((_argc < 2))
 	then
@@ -635,11 +650,15 @@ dosym() {
 
 	case ${CHOST} in
 	*-*-mingw*|*-*-msys*|*-*-msdos*)
-		ln_s="cp" ;;
+		ln_s="cp"
+		case "${_argv[*]:1:$((_argc - 1))}" in
+		/* ) fix_abs=${D};;
+		*  ) fix_abs=./;;
+		esac ;;
 	*)	ln_s="ln -s" ;;
 	esac
 
-	${ln_s} -f ${_argv[*]:1:$((_argc - 1))} ${D}${dest} || error "dosym failed"
+	${ln_s} -f ${fix_abs}${_argv[*]:1:$((_argc - 1))} ${D}${dest} || error "dosym failed"
 
 	popd
 }

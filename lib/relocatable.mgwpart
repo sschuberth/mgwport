@@ -1,0 +1,90 @@
+################################################################################
+#
+# relocatable.mgwpart - mgwport relocatable package support
+#
+# Copyright (C) 2011 Charles Wilson
+#
+# mgwport is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# mgwport is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with mgwport.  If not, see <http://www.gnu.org/licenses/>.
+#
+################################################################################
+
+################################################################################
+#
+# relocation functions
+#
+# mutable:
+#      _RELOCDIR
+#
+# public:
+#
+# private:
+#      __init_relocation()
+#      __check_relocation()
+#      __maybe_relocation()
+#
+################################################################################
+_RELOCDIR=
+
+__init_relocation() {
+	if [ ! -d ${configdir} ]
+	then
+		error "mgwport internal error: __init_relocation called too early."
+	fi
+
+	_RELOCDIR=
+	if inherited relocatable
+	then
+		local _template="/tmp/mgwport-reloc-"
+		_RELOCDIR=$(__config_get relocdir)
+		if [ ${_RELOCDIR:0:${#_template}} != ${_template} -o \
+		     ! -d ${_RELOCDIR} ]
+		then
+			_RELOCDIR=$(mktemp -d ${_template}XXXXXX)
+			__config_set relocdir ${_RELOCDIR}
+		fi
+	fi
+}
+
+__check_relocation() {
+	if ! inherited relocatable && defined _RELOCDIR
+	then
+		error "configuration mismatch: relocation disabled but _RELOCDIR=${_RELOCDIR}"
+	fi
+	if inherited relocatable && ! defined _RELOCDIR
+	then
+		error "configuration mismatch: relocation enabled but _RELOCDIR not set"
+	fi
+}
+
+__maybe_relocate() {
+	__init_relocation
+	__check_relocation
+}
+
+__finish_relocate() {
+	__maybe_relocate
+
+	# In relocation mode, mktemp created an actual directory in /tmp.
+	# Nothing was ever installed there, but we should clean it up, too.
+	if inherited relocatable
+	then
+		if [ -d "${_RELOCDIR}" ]
+		then
+			rmdir ${_RELOCDIR};
+		fi
+	fi
+}
+
+readonly -f __init_relocation __check_relocation __maybe_relocate \
+            __finish_relocate

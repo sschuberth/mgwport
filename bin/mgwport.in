@@ -44,6 +44,7 @@ declare -r _sysconfdir=@sysconfdir@;
 
 
 ### import defined, pushd, popd
+source ${_privlibdir}/relocatable.mgwpart
 source ${_privlibdir}/syntax.mgwpart
 ###
 
