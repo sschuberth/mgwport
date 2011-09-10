@@ -179,6 +179,15 @@ fi
 declare -r top=$(cd ${_topdir}; pwd);
 unset _topdir;
 
+declare -r workdir="${top}/${PF}";
+declare -r srcdir="${workdir}/src";
+declare -r origsrcdir="${workdir}/origsrc";
+declare -r configdir="${workdir}/config";
+declare -r logdir="${workdir}/log";
+declare -r patchdir="${workdir}/patch";
+declare -r spkgdir="${workdir}/spkg";
+declare -r distdir="${workdir}/dist";
+
 #****v* Globals/MPFLAVOR
 #  DESCRIPTION
 #  Controls whether this script acts in its "mingw" flavor, or its "msys"
@@ -453,15 +462,6 @@ done
 # Define package-dependant variables
 #
 ################################################################################
-
-declare -r workdir="${top}/${PF}";
-declare -r srcdir="${workdir}/src";
-declare -r origsrcdir="${workdir}/origsrc";
-declare -r configdir="${workdir}/config";
-declare -r logdir="${workdir}/log";
-declare -r patchdir="${workdir}/patch";
-declare -r spkgdir="${workdir}/spkg";
-declare -r distdir="${workdir}/dist";
 
 SRC_DIR=${SRC_DIR:-${ORIG_PN:-${PN}}-${PV}};
 if [ "x${SRC_DIR}" = "x." ]

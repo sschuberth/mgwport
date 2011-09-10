@@ -60,6 +60,16 @@ CHOST=$(__canonicalize_triplet ${CROSS_HOST})
 CTARGET=${CHOST}
 CROSS_HOST=${CHOST}
 
+# Need special workaround for cross. Only triggered
+# during 'prep' stage...but ensure this workaround
+# not activated unless necessary.
+if [ -n "${configdir}" ]
+then
+        if [ ! -d ${configdir} ]
+        then
+                mkdir -p ${configdir}
+        fi
+fi
 
 #****d* cross.mgwclass/CROSS_SYSROOT
 #  DESCRIPTION

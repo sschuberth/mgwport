@@ -23,14 +23,14 @@
 __config_get() {
 	if [ -f ${configdir}/${1} ]
 	then
-		echo -n $(/usr/bin/cat ${configdir}/${1});
+		echo -n $(/bin/cat ${configdir}/${1});
 	else
 		echo -n "0";
 	fi
 }
 
 __config_equals() {
-	if [ -f ${configdir}/${1} ] && [ $(/usr/bin/cat ${configdir}/${1}) = ${2} ]
+	if [ -f ${configdir}/${1} ] && [ $(/bin/cat ${configdir}/${1}) = ${2} ]
 	then
 		return 0;
 	else
