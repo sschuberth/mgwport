@@ -11,9 +11,9 @@ generic-build-script, or g-b-s[2].
 However, the g-b-s has many drawbacks:
 
 1) Even the simplest changes, such as adding an argument to configure,
-   requires wading through the entire 500+ line script; many beginners 
+   requires wading through the entire 500+ line script; many beginners
    have struggled with their first packages.
-   
+
 2) Having a history as a ash script, it is nearly impossible to read, with
    run-on commands, && continuations, and backslash-escaped line breaks.
 
@@ -21,16 +21,16 @@ However, the g-b-s has many drawbacks:
    other packaging systems (e.g. perl MakeMaker, python Distutils,
    stand-alone Makefiles, etc.) requires having several "branches" of the
    script for each purpose.
-   
+
 4) Updating to a newer script requires either merging package-specific
    changes into a new template (and not forgetting anything), or
    back-porting g-b-s changes into an existing package script.
-   
+
 5) There is no simple method of dealing with an original source package
    whose name or top directory do not conform with the PKGNAME-VERSION
    form, or where the Cygwin package name differs from the upstream name
    (e.g. gtk2.0 from gtk+).
-   
+
 6) It is not designed to create more than one binary package per source
    package -- e.g.  whereby the foo source is separated into foo, libfoo1,
    and libfoo-devel binary packages -- despite the fact that is often
@@ -39,7 +39,7 @@ However, the g-b-s has many drawbacks:
 Having used the g-b-s in various forms for a couple of years, during
 which I've packaged hundreds of unique source packages (not counting
 versions), I have found various ways of 'getting by'.  I forked the
-g-b-s a while back, and created a few templates for various purposes. 
+g-b-s a while back, and created a few templates for various purposes.
 This solution, however, is still severely limiting, as mentioned above.
 
 In the meantime, I also had exposure to a Linux distribution and its
@@ -61,11 +61,11 @@ In fact, Portage answers many of the drawbacks of the g-b-s:
 3) The Eclass system allows ebuilds to be easily extended to any number
    of different build systems (Perl, Python, Ruby, etc.) and/or categorical
    templates (e.g. GNOME or KDE).
-   
+
 4) Updates to Portage take affect immediately, without updating all
    ebuilds, and ebuilds can be created without even looking at the
    internals of Portage itself.
-   
+
 5) Ebuilds anyway define the source package name, and can easily
    override the assumed source top directory when necessary.
 
@@ -82,11 +82,11 @@ because:
 
 3) There is no way to create multiple binary packages from a single
    source package, without building the source multiple times.
-   
+
 4) Most importantly, setup.exe provides a GUI which makes installation
    easier for the uninitiated.
 
-(It should be noted that there have been renewed attempts to run Portage 
+(It should be noted that there have been renewed attempts to run Portage
 on Cygwin[3], and this was even recently ITP'd and rejected[4].)
 
 
@@ -111,7 +111,7 @@ instructions.
 In addition, cygport is modularized.  Support for various build systems
 is provided through separate cygclasses, which are 'inherit'ed by the
 package .cygport as necessary.
-   
+
 The public functions and syntax (those used by a package .cygport) are
 closer to those of Portage then of the g-b-s (it is extremely unlikely,
 however, that a Gentoo ebuild will work as a .cygport with a simple
@@ -135,11 +135,11 @@ files must remain in the same directory.
 The general format of a cygport command is:
 
     cygport [/path/to/]PKGNAME-VERSION-RELEASE[.cygport] COMMAND [COMMAND2]
-    
+
 The first argument to cygport may be either a path to a .cygport file, e.g.:
 
     $ cygport /usr/src/foo2-2.3.7-1.cygport COMMAND
-    
+
 Or, alternatively, if cygport is run from the directory containing the
 .cygport file, then the PKGNAME-VERSION-RELEASE triplet may be used
 instead of a path:
@@ -175,8 +175,8 @@ See the data/sample.cygport file, included in the Cygwin package in
 ${prefix}/share/cygport, for a simple example.  Many more examples
 are available in the Cygwin Ports repository[5].
 
-The .cygport file name must be in the form PKGNAME-VERSION-RELEASE.cygport, 
-where PKGNAME is the Cygwin package name (which need not be the same as 
+The .cygport file name must be in the form PKGNAME-VERSION-RELEASE.cygport,
+where PKGNAME is the Cygwin package name (which need not be the same as
 the original source package name).
 
 Pure bash syntax is used.  Since a .cygport file is itself not a
@@ -192,7 +192,7 @@ determine the original source package and assume its top directory name;
 if the latter does not conform to PKGNAME-VERSION (in cygport syntax,
 ${PN}-${PV}, or ${P}), then define SRC_DIR.
 
-During the src_* functions, be sure to cd into the correct directory. 
+During the src_* functions, be sure to cd into the correct directory.
 The directories are defined by cygport as follows:
 
     S is the original source directory; you should NOT compile here.
@@ -209,7 +209,7 @@ affect.  The defaults are autoconf-2.5 and automake-1.10; these may be
 overridden by defining WANT_AUTOCONF and WANT_AUTOMAKE to the desired
 versions; be sure to remember that libtool >= 1.5 requires that
 autoconf-2.5 be used.  The 'cygautoreconf' command handles all this for
-you, and must be called at the beginning of the src_compile step. 
+you, and must be called at the beginning of the src_compile step.
 (Files regenerated through this process will be ignored when generating
 the source patch.)
 
@@ -262,7 +262,7 @@ A default src_compile() is provided, which does the following:
     cygmake
 
 Another command that may come in useful is 'lndirs', which mirrors ${S}
-into ${B} with symlinks.  This is primarily for use with non-autotooled 
+into ${B} with symlinks.  This is primarily for use with non-autotooled
 packages, so that they may be built in ${B} rather than ${S}.
 
 The src_test() function defines how to run the package testsuite, if
@@ -275,10 +275,10 @@ included in the package .cygport.  For example:
         cd ${B}
         make megatest
     }
-    
+
 If a package has no testsuite and will not accept a 'make test', then
 define an empty src_test():
-    
+
     src_test() {
         :
     }
@@ -311,7 +311,7 @@ everything under ${D} for you.  Some examples:
     doins ${S}/src/foo.h
 
     # install -m644 into ${D}/usr/lib
-    dolib libfoo.dll.a    
+    dolib libfoo.dll.a
 
 The default src_install() is defined simply as:
 
@@ -332,7 +332,7 @@ A Cygwin README file should be included in the CYGWIN-PATCHES directory,
 named README.  A standard template for this purpose is available from
 the Cygwin distribution website[2].  The setup.hint files should also be
 included in CYGWIN-PATCHES.
-    
+
 Most standard documentation files will be installed automatically; if
 your package has a unique doc, then you can either pass them to 'dodoc'
 during src_install(), or define DOCS as a string containing the names of
@@ -358,7 +358,7 @@ including all files installed into ${D}.  This is the default, and if
 this applies to your package, the rest of this section is irrelevant.
 
 However, there are many cases -- often with library packages -- that it
-is desirable to create multiple binary packages from one source. 
+is desirable to create multiple binary packages from one source.
 cygport makes that very easy.
 
 Let's take a typical GNOME 2 library package as an example.  Such
@@ -381,7 +381,7 @@ Or an ordinary library package may look like:
     PKG_CONTENTS[0]='--exclude=usr/bin/*.dll usr/'
     PKG_CONTENTS[1]='usr/bin/*.dll'
 
-PKG_NAMES is a string list of package names; the first package name must 
+PKG_NAMES is a string list of package names; the first package name must
 be ${PN}.
 
 PKG_HINTS is a string list of setup.hint names; the .hint extension is
@@ -391,8 +391,8 @@ PKG_HINTS will default to PKG_NAMES if left undefined.
 
 PKG_CONTENTS[] is an array; each element (starting with 0) should be
 defined as the files to include in the corresponding binary package as
-arguments to tar(1).  Alternatively, a PKG_NAME.list file can be created 
-in CYGWIN-PATCHES with the argument list, in which case the PKG_CONTENTS 
+arguments to tar(1).  Alternatively, a PKG_NAME.list file can be created
+in CYGWIN-PATCHES with the argument list, in which case the PKG_CONTENTS
 member should not be defined.
 
 cygport will check that all PKG_* variables refer to the same number of
@@ -402,12 +402,12 @@ During the 'package' phase, the additional packages will be created as
 subdirectories of dist/${PN}/ for easy transfer to release/, e.g.:
 
     libgnome2/libgnome2-devel/libgnome2-devel-2.14.0-1.tar.bz2
-    libgnome2/libgnome2-devel/setup.hint    # ${M}/devel.hint
+    libgnome2/libgnome2-devel/setup.hint    # ${C}/devel.hint
     libgnome2/libgnome2-doc/libgnome2-doc-2.14.0-1.tar.bz2
-    libgnome2/libgnome2-doc/setup.hint        # ${M}/doc.hint
+    libgnome2/libgnome2-doc/setup.hint        # ${C}/doc.hint
     libgnome2/libgnome2-2.14.0-1-src.tar.bz2
     libgnome2/libgnome2-2.14.0-1.tar.bz2
-    libgnome2/setup.hint                    # ${M}/setup.hint
+    libgnome2/setup.hint                    # ${C}/setup.hint
 
 
 6. REQUIREMENTS
@@ -441,7 +441,7 @@ addition to the packages own dependencies:
 7. DOWNLOAD AND INSTALLATION
 
 Cygwin binary and source packages of cygport are available as part of
-the Cygwin distribution, under the 'Devel' category.  Installing cygport 
+the Cygwin distribution, under the 'Devel' category.  Installing cygport
 with setup.exe will automatically install all mandatory dependencies.
 
 cygport is hosted on Git.  Those interested in helping with cygport
@@ -450,13 +450,13 @@ The sources can be browsed through Gitweb at:
 
 	http://cygwin-ports.git.sourceforge.net/
 
-Patches for cygport should be created through 'git format-patch' and 
+Patches for cygport should be created through 'git format-patch' and
 based on the 'master' branch.  The source repository can be cloned from:
 
 	git://cygwin-ports.git.sourceforge.net/gitroot/cygwin-ports/cygport
 
-To build cygport from git, run ./autogen.sh, then make. The following 
-Cygwin packages are required: autoconf, automake, coreutils, groff, 
+To build cygport from git, run ./autogen.sh, then make. The following
+Cygwin packages are required: autoconf, automake, coreutils, groff,
 help2man, robodoc, sed.
 
 

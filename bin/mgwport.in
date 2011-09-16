@@ -2,10 +2,10 @@
 ################################################################################
 #
 # mgwport - MinGW/MSYS packaging application
-# based on cygwport by Yaakov Selkowitz
 #
 # Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011 Yaakov Selkowitz
-# Provided by the Cygwin Ports project <http://sourceware.org/cygwinports/>
+# Copyright (C) 2011 Charles Wilson
+# Provided by the MinGW project <http://mingw.org/>
 #
 # mgwport is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -283,7 +283,7 @@ esac
 #  * cross.mgwclass
 #  * git.mgwclass
 #  * svn.mgwclass
-#  * tcl.cygclass
+#  * tcl.mgwclass
 #  * toolchain.mgwclass
 #  * utils.mgwclass
 #  BUGS
@@ -567,7 +567,7 @@ declare -r  pkg_count=${#pkg_name[*]};
 
 declare -i arg_n=2
 
-# When adding commands here, also add them to cygport-bash-completion
+# When adding commands here, also add them to mgwport-bash-completion
 while (( arg_n < argc ))
 do
 	case ${argv[${arg_n}]} in

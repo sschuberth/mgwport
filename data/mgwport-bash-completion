@@ -1,6 +1,6 @@
-# -*- sh -*- cygport completion by Reini Urban <rurban@x-ray.at>
+# -*- sh -*- mgwport completion by Reini Urban <rurban@x-ray.at>
 
-_cygport()
+_mgwport()
 {
 	local cur commands
 
@@ -15,11 +15,11 @@ _cygport()
 
 	if [[ $COMP_CWORD -eq 1 ]] ; then
 		# first arg: source file completion
-		_filedir 'cygport'
+		_filedir '@(mgwport|msysport)'
 	else
 		# 2nd++ arg: commands
 		COMPREPLY=( $( compgen -W "$commands" -- $cur ) )
 	fi
 	return 0
 }
-complete -F _cygport -o default cygport
+complete -F _mgwport -o default mgwport

@@ -141,7 +141,7 @@
 	* Fixed DEPS_PATH.
 	* Various fixes for building gcc.
 	* apache2.cygclass: APREQ_* are set only if libapreq2 is installed.
-	* git.cygclass: Accept GIT_SUBDIR to create a source-package from 
+	* git.cygclass: Accept GIT_SUBDIR to create a source-package from
       a subdirectory of a git repository.
 	* kde3.cygclass: Fix for CMake-based packages.
 	* kde4.cygclass: kde4_install passes arguments to cyginstall.
@@ -404,8 +404,8 @@
 
 0.2.7:
 	* Use PATCH_URI for upstream or third-party patches; these patches are
-	  included individually in the -src.tar.bz2 and do NOT get included in 
-	  the .src.patch.  See ports/apps/vim/gvim-7.0.178-1 and 
+	  included individually in the -src.tar.bz2 and do NOT get included in
+	  the .src.patch.  See ports/apps/vim/gvim-7.0.178-1 and
 	  ports/gnome/imlib/imlib-1.9.15-1 for examples of usage.
 	* PKG_LISTS should be defined for *.list names.
 	* Add gtk-update-icon-cache to postinstall as needed.
@@ -469,7 +469,7 @@
 
 0.2.1:
 	New check_prog_req function, which errors if program was not found.
-	During package phase, verifies that no files were duplicated or 
+	During package phase, verifies that no files were duplicated or
 	  omitted in the binary packages.
 	Enhancements to qt3 and kde3 cygclasses.
 	Enhancements to cygautoreconf and gnome2_autoreconf.
@@ -478,9 +478,9 @@
 0.2.0:
 	NEW svn.cygclass: for creating packages from SVN snapshots.
 	Implements CYGCONF_SOURCE, to be defined as the directory where
-	  the configure script is located, for use when not building in ${B}, 
+	  the configure script is located, for use when not building in ${B},
 	  e.g. when running multiple configures from the same source.
-	Supports SRC_DIR='.', for the unusual case where a source doesn't 
+	Supports SRC_DIR='.', for the unusual case where a source doesn't
 	  decompress into a subdir.
 	Supports more compression formats, as well as *.sh sources (for
 	  wrappers and the like).

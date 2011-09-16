@@ -1,11 +1,68 @@
 ################################################################################
 #
-# relocatable.mgwclass - Inheriting this mgwclass indicates that the package
-#     uses Bruno Haible's relocation framework (e.g. libiconv and gettext,
-#     with --enable-relocatable). There is very little content in this file,
-#     as its main utility is to serve as an indicator.
+# relocatable.mgwclass - support for building (certain) packages with relocation
+#
+# Part of mgwport - MinGW/MSYS packaging application
+# Copyright (C) 2011 Charles Wilson
+# Provided by the MinGW project <http://mingw.org/>
+#
+# mgwport is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# mgwport is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with mgwport.  If not, see <http://www.gnu.org/licenses/>.
 #
 ################################################################################
+
+#****h* mgwclasses/relocatable.mgwclass
+#  SYNOPSIS
+#  inherit relocatable
+#  DESCRIPTION
+#  Some packages benefit from "relocation" support, whereby filesystem resource
+#  locations are computed at runtime based on the current installation location
+#  of the (executable or DLL) module, rather than relying on built-in paths
+#  computed when the module is compiled.  This is particularly important for
+#  MinGW packages, because end-users may install applications almost anywhere.
+#  Relocation is not as much of an issue for MSYS packages, because the mount
+#  table can be used to "virtualize" the DOSish install location to a constant
+#  POSIX path: my E:/work/msys/ and your C:/MinGW/msys/1.0 are both mapped to
+#  the same "/" virtualized POSIX path.
+#
+#  Two important packages implement relocation in a specific way: libiconv and
+#  gettext (that is, libintl). These packages are important for i18n support,
+#  and are both widely used, and commonly installed in many different locations.
+#  Therefore, this mgwclass is used to activate the relocation support for those
+#  two packages; it does not necessarily support other relocation schemes.
+#
+#  The main effect of inheriting this mgwclass is the following:
+#    1) modify all prefix (and $prefix-related variables) to a randomly
+#       named subdirectory of /tmp.  That way, even when these packages are
+#       installed in the standard "C:/MinGW" hierarchy, the relocation support
+#       will be activated. This places all installations, no matter the
+#       location, on the same footing (except for C:/Temp/mgwport-reloc-XXXXXX,
+#       but that's just pathological).
+#    2) add --enable-relocation to the configure arguments
+#    3) special handling when creating the binary packages, so that the
+#       random "prefix" directory tree does not appear.
+#  Most of the relocation support is actually implemented in mgwport proper,
+#  and in its "relocatable.mgwpart" subunit, rather than in this mgwclass.
+#
+#  NOTE
+#  Really only supported for "native" MinGW builds.  MSYS builds are untested
+#  as relocation is not necessary for that subsystem (see above).  Cross builds,
+#  even ones targetted for MinGW, do not work -- but that is due to issues
+#  internal to the libiconv and gettext packages themselves.  Mgwport itself
+#  only requires that relocatable must be inherited before cross is.
+#  REQUIRES
+#  mktemp
+#****
 if inherited cross
 then
 	error "Must inherit relocatable before cross"

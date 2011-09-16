@@ -1,6 +1,7 @@
 SUBDIRS = bin lib mgwclass data doc tests tools .
 
-noinst_DATA = AUTHORS COPYING NEWS README TODO
+noinst_DATA = AUTHORS COPYING NEWS README TODO \
+	      CYGPORT.NEWS CYGPORT.README CYGPORT.TODO
 
 EXTRA_DIST =					\
 	$(noinst_DATA)				\

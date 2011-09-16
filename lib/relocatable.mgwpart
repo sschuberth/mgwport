@@ -3,6 +3,7 @@
 # relocatable.mgwpart - mgwport relocatable package support
 #
 # Copyright (C) 2011 Charles Wilson
+# Provided by the MinGW project <http://mingw.org/>
 #
 # mgwport is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -31,7 +32,8 @@
 # private:
 #      __init_relocation()
 #      __check_relocation()
-#      __maybe_relocation()
+#      __maybe_relocate()
+#      __finish_relocate()
 #
 ################################################################################
 _RELOCDIR=

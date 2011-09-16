@@ -2,22 +2,23 @@
 #
 # toolchain.mgwclass - for building and using toolchains
 #
-# Part of cygport - Cygwin packaging application
+# Part of mgwport - MinGW/MSYS packaging application
 # Copyright (C) 2010 Yaakov Selkowitz
-# Provided by the Cygwin Ports project <http://sourceware.org/cygwinports/>
+# Copyright (C) 2011 Charles Wilson
+# Provided by the MinGW project <http://mingw.org/>
 #
-# cygport is free software: you can redistribute it and/or modify
+# mgwport is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-# cygport is distributed in the hope that it will be useful,
+# mgwport is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with cygport.  If not, see <http://www.gnu.org/licenses/>.
+# along with mgwport.  If not, see <http://www.gnu.org/licenses/>.
 #
 ################################################################################
 
@@ -32,7 +33,7 @@
 #  for another system (a "cross" compiler).
 #
 #  This mgwclass assists in building both native- and cross-compilers which will
-#  run on Cygwin.
+#  run on windows (MinGW), or under the MSYS subsystem.
 #  INHERITS
 #  autotools.mgwclass
 #  SEE ALSO
@@ -93,7 +94,7 @@ fi
 #  toolchain_compile [CONFIGURE_ARGS]
 #  DESCRIPTION
 #  Configures the toolchain package with the necessary options for the given
-#  TOOLCHAIN_TARGET, then runs cygmake to build.
+#  TOOLCHAIN_TARGET, then runs mgwmake to build.
 #****
 toolchain_compile() {
 	local sysroot
@@ -103,8 +104,8 @@ toolchain_compile() {
 		sysroot="--with-sysroot=${TOOLCHAIN_SYSROOT} --with-build-sysroot=${TOOLCHAIN_SYSROOT}"
 	fi
 
-	cygconf ${sysroot} ${@}
-	cygmake
+	mgwconf ${sysroot} ${@}
+	mgwmake
 }
 
 #****o* toolchain.mgwclass/src_compile (toolchain)

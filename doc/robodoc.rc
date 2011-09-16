@@ -1,5 +1,5 @@
 options:
-	--documenttitle "Cygport Reference"
+	--documenttitle "Mgwport Reference"
 	--index
 	--masterindex "Index,index"
 	--nopre
@@ -61,18 +61,19 @@ preformatted items:
 source items:
 	DEFINITION
 headertypes:
-	*  "Concepts" cygport_concepts
-	d  "Definitions" cygport_definitions
-	h  "Cygclasses" cygport_cygclasses
-	o  "Overloads" cygport_overloads
-	v  "Variables" cygport_variables
-	f  "General Functions" cygport_general_functions
-	C  "Compile Functions" cygport_compile_functions
-	T  "Testsuite Functions" cygport_testsuite_functions
-	I  "Install Functions" cygport_install_functions
+	*  "Concepts" mgwport_concepts
+	d  "Definitions" mgwport_definitions
+	h  "mgwclasses" mgwport_mgwclasses
+	o  "Overloads" mgwport_overloads
+	v  "Variables" mgwport_variables
+	f  "General Functions" mgwport_general_functions
+	C  "Compile Functions" mgwport_compile_functions
+	T  "Testsuite Functions" mgwport_testsuite_functions
+	I  "Install Functions" mgwport_install_functions
 ignore files:
 	autom4te.cache
-	CYGWIN-PATCHES
+	MINGW-PATCHES
+	MSYS-PATCHES
 	Makefile
 	Makefile.in
 	README
@@ -80,10 +81,10 @@ ignore files:
 	config.log
 	config.status
 	configure
-	cygport
-	cygport-inplace
-	cygport-*.*.*
-	cygport.spec
+	mgwport
+	mgwport-inplace
+	mgwport-*.*.*
+	mgwport.spec
 	doc
 	gnuconfig
 	install-sh

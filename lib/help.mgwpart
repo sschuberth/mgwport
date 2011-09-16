@@ -1,22 +1,23 @@
 ################################################################################
 #
-# help.cygpart - cygport command-line help functions
+# help.mgwpart - mgwport command-line help functions
 #
 # Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011 Yaakov Selkowitz
-# Provided by the Cygwin Ports project <http://sourceware.org/cygwinports/>
+# Copyright (C) 2011 Charles Wilson
+# Provided by the MinGW project <http://mingw.org/>
 #
-# cygport is free software: you can redistribute it and/or modify
+# mgwport is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-# cygport is distributed in the hope that it will be useful,
+# mgwport is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with cygport.  If not, see <http://www.gnu.org/licenses/>.
+# along with mgwport.  If not, see <http://www.gnu.org/licenses/>.
 #
 ################################################################################
 
@@ -47,9 +48,8 @@ __show_help() {
 __show_version() {
 	cat <<-_EOF
 		mgwport ${_version}
-		derived from cygwin cygport:
-
-		Copyright (C) 2011 Yaakov Selkowitz
+		Copyright (C) 2011 Charles Wilson
+		Derived from cygwin cygport: Copyright (C) 2006-2011 Yaakov Selkowitz
 
 		This program comes with NO WARRANTY, to the extent permitted by law.
 
@@ -60,8 +60,8 @@ __show_version() {
 
 		For more information about these matters, see the file named COPYING.
 
-		Written by Yaakov Selkowitz for the Cygwin Ports project
-		<http://sourceware.org/cygwinports/>.
+		Adapated from cygport by Charles Wilson for the MinGW project
+		<http://mingw.org/>.
 		_EOF
 }
 

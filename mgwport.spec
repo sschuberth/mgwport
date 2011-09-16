@@ -7,8 +7,8 @@ Summary:        MinGW package building tool
 
 License:        GPLv3+
 Group:          Development/Tools
-URL:            http://www.cygwinports.org
-Source0:        http://downloads.sourceforge.net/cygwin-ports/%{name}-%{version}.tar.xz
+URL:            http://www.mingw.org
+Source0:        http://downloads.sourceforge.net/mingw/%{name}-%{version}.tar.xz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildArch:      noarch
 

@@ -2,22 +2,23 @@
 #
 # cross.mgwclass - for building cross-compiled packages
 #
-# Part of cygport - Cygwin packaging application
+# Part of mgwport - MinGW/MSYS packaging application
 # Copyright (C) 2006, 2008, 2010, 2011 Yaakov Selkowitz
-# Provided by the Cygwin Ports project <http://sourceware.org/cygwinports/>
+# Copyright (C) 2011 Charles Wilson
+# Provided by the MinGW project <http://mingw.org/>
 #
-# cygport is free software: you can redistribute it and/or modify
+# mgwport is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-# cygport is distributed in the hope that it will be useful,
+# mgwport is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with cygport.  If not, see <http://www.gnu.org/licenses/>.
+# along with mgwport.  If not, see <http://www.gnu.org/licenses/>.
 #
 ################################################################################
 
@@ -32,8 +33,8 @@
 #  build system to cross-compile other software which depends on it.
 #
 #  Supported build systems for cross-compiling are autotools, cmake, qmake, and
-#  custom Makefiles.  When using cross.cygclass, cygconf, cygcmake, and cygqmake4
-#  automatically use the necessary arguments for cross-compiling, and cyginstall
+#  custom Makefiles.  When using cross.mgwclass, mgwconf, mgwcmake, and mgwqmake4
+#  automatically use the necessary arguments for cross-compiling, and mgwinstall
 #  and most of the do* and new* installation functions install into the sysroot
 #  instead of the native root.  Note that those installation functions which
 #  accept an absolute path (dodir, exeinto, insinto, dosym) make no assumptions
@@ -87,7 +88,7 @@ fi
 #
 #  If you do use natively-compiled host packages under the sysroot, you must
 #  fix paths in all *-config scripts, .la libtool libraries, and .pc
-#  pkg-config files so they do not erroneously point to Cygwin-native
+#  pkg-config files so they do not erroneously point to MinGW or MSYS -native
 #  headers and libraries.
 #****
 CROSS_SYSROOT="$(__mpflavor_prefix)/${CHOST}/sys-root"
@@ -230,7 +231,7 @@ doelflib() {
 	done
 }
 
-#****I* cross.cygclass/cross_sysrootize
+#****I* cross.mgwclass/cross_sysrootize
 #  SYNOPSIS
 #  cross_sysrootize FILE [FILE] ...
 #  DESCRIPTION
@@ -253,7 +254,7 @@ cross_sysrootize(){
 	done
 }
 
-#****I* cross.cygclass/cross_desysrootize
+#****I* cross.mgwclass/cross_desysrootize
 #  SYNOPSIS
 #  cross_desysrootize FILE [FILE] ...
 #  DESCRIPTION

@@ -2,22 +2,23 @@
 #
 # mirrors - default list for mirror:// URI resolution
 #
-# Part of cygport - Cygwin packaging application
+# Part of mgwport - MinGW/MSYS packaging application
 # Copyright (C) 2006, 2007, 2008, 2009, 2010 Yaakov Selkowitz
-# Provided by the Cygwin Ports project <http://sourceware.org/cygwinports/>
+# Copyright (C) 2011 Charles Wilson
+# Provided by the MinGW project <http://mingw.org/>
 #
-# cygport is free software: you can redistribute it and/or modify
+# mgwport is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-# cygport is distributed in the hope that it will be useful,
+# mgwport is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with cygport.  If not, see <http://www.gnu.org/licenses/>.
+# along with mgwport.  If not, see <http://www.gnu.org/licenses/>.
 #
 ################################################################################
 
@@ -27,17 +28,18 @@
 #  mirrors for their projects, allowing users to choose a site closer to them
 #  and to help distribute the bandwidth demands around the world.
 #
-#  Within cygport, the mirror:// notation can be used in SRC_URI and PATCH_URI
+#  Within mgwport, the mirror:// notation can be used in SRC_URI and PATCH_URI
 #  to allow package maintainers both the ability to choose their favourite
 #  mirrors and use an abbreviated URI for common sites.
 #
 #  The default mirrors are usually the central download site or a redirector.
 #  Users can select their favourite mirrors by redefining the mirror_*
 #  variables listed below (as a string containing one or more mirror sites)
-#  in their cygport.conf.
+#  in their mgwport.conf.
 #  HINT
-#  Custom per-package "mirrors" can also be defined in a .cygport file.  This
-#  can be useful if SRC_URI or PATCH_URI contain a large number of long URIs.
+#  Custom per-package "mirrors" can also be defined in a .mgwport (.msysport)
+#  file.  This can be useful if SRC_URI or PATCH_URI contain a large number of
+#  long URIs.
 #  NOTE
 #  Mirror providers change frequently.  If you define your own default mirror,
 #  you may experience errors or delays downloading if your mirror goes offline.
