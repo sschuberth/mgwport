@@ -1,0 +1,9 @@
+A wishlist of features to add in future releases, in no particular order:
+
+* Fix all FIXMEs
+* Validate cvs cygclass
+* Validate git cygclass (needs msys git port)
+* Validate tcl cygclass (need to port tcl; msys or mingw flavor?)
+* Validate toolchain cygclass - use to build MinGW gcc and/or msys-gcc
+* Better handling for access to $build tools (/usr vs /mingw? $PATH?)
+

@@ -1,0 +1,819 @@
+This is mgwport, a revolutionary new method for building and maintaining
+packages for the MinGW/MSYS offerings[1].
+
+
+1. BACKGROUND
+===============================================================================
+
+In the distant past, the MinGW.org project did not provide official binary
+packages of any software, except for 
+
+  (a) the MinGW toolchain itself (gcc, binutils, etc). These were distributed
+      as a prepackaged installer such as "MinGW-5.1.6.exe" (which, confusingly,
+      installed MinGW gcc 3.4.5).
+  (b) A large monolithic collection of pre-packaged utilities together with
+      the MSYS runtime DLL. This included user utilities such as a bash shell,
+      some of the textutils/fileutils/shellutils tools, and others. This was
+      known as the MSYS "distribution" and was distributed as a prepackaged
+      installer, such as "MSYS-1.0.11.exe".
+  (c) A large monolithic collection of pre-packaged developer tools such
+      as perl, autoconf/automake/libtool, and other tools. These were known
+      as the "Supplementary Tools" and were distributed as a prepackaged
+      installer, such as "msysDTK-1.0.1.exe".
+
+The problem with these large monolithic packages was that they were not often
+updated. So, some of the tools in msysDTK, for instance, became increasingly
+stale.  To work around this problem, "addons" and "updates" began to
+proliferate -- so that deploying a reasonably up-to-date MSYS system involved
+downloaded and manually "overlaying" dozens of additional packages.  Detailed
+instructions for doing so were beginning to aspire to novel length[2].
+Furthermore, there really was no rhyme or reason to how these "overlay updates"
+should be structured or delivered.
+
+For any add-ons that were not part of the original "big three" monolithic
+deliveries, the situation was even more complicated. Most of the utilities,
+other than the toolchain itself, provided by mingw.org were in fact MSYS
+applications.  Native MinGW addons were typically delivered, gentoo-fashion,
+as "mingwPORTs": a collection of shell scripts and patches that the end-user
+could use to (a) download the actual source from the original location, (b)
+customize the build settings, and (c) compile/install the tool on their
+own machine.  However, to do so required a working MinGW compiler installation,
+as well as a working (and up to date; see above) MSYS installation with a
+collection of other tools.  For instance, wget was required for proper
+mingwPORT use -- but was not provided by any of the monolithic packages
+above.  In fact, wget.exe was provided, pre-built, inside the wget mingwPORT
+package -- because of the obvious bootstrap issues.  But how was a poor
+unsuspecting end user to know this? "Everybody" knows that a mingwPORT is
+just a collection of shell scripts...
+
+The situation really was untenable.
+
+And this discription doesn't even address the OTHER tools need in order to
+build *msys* applications, such as the "system builder" gcc package, and
+customized versions of the autotools...
+
+
+1.A.  Making Things Worse
+-------------------------------------------------------------------------------
+In 2009, and after long discussion, it was decided that the monolithic
+installation packages should be retired, and replaced with a modern, component
+based installation scheme.  The new installer would be able to handle
+depedencies, and would install packages that followed a specific naming
+scheme[3].
+
+However, there was a bit of a chicken and egg problem: you can't have a
+component-based installer without actual components. But, if you build the
+components first then you have hundreds of (small) packages to manually
+download and unpack, until your installer is coded, tested, and released.
+
+Be that as it may, the mingw.org project embarked on the project of building
+new "component" packages for all the elements that, in the past, were delivered
+as parts of the three monolithic installers:
+
+   Updated packages available           [4]
+   Updated packages available (wave 2)  [5]
+   Updated packages available (wave 3)  [6]
+   Updated packages available (wave 4)  [7]
+   Updated packages available (wave 5)  [8]
+   Updated packages available (wave 6)  [9]
+   Updated packages available (wave 7)  [10]
+
+Because we now had a few hundred separate tarballs, but did not yet have an
+automated installer to manage the process of downloading and installing them,
+the overall user experience was WORSE -- even if the delivered software, once
+you actually got the correct components downloaded and properly installed,
+was newer/better.
+
+This history is mentioned only to introduce the following discussion: how
+were these packages, well, packaged?  It depends:
+
+The ones intended for the MinGW subsystem (e.g. whose full package-name
+included -mingw32-) were built using a modified version of mingwPORT:
+modified to (a) install into a temporary location, (b) create a set of
+"installation" packages from that install image, and (c) also create a
+-src package including "itself" (the mingwPORT scripts and patches) plus
+the downloaded original source tarball.
+
+The packages intended for the MSYS subsystem (e.g. whose full package-name
+included -msys-1.0.NN-) were built using a build script, heavily customized
+for each package.  This build script was based on the cygwin project's
+"generic build script" (or g-b-s)[11], but was much more limited.
+
+Many of the current (pre-compiled) packages distributed by mingw.org still
+use one of these two methods.  However, over the past two years a few
+additional experiments have arisen; also, the main gcc package(s) have always
+had custom build scripts of one sort or another, as have the "core" msys
+package(s).
+
+1.B.  Current packaging tools
+-------------------------------------------------------------------------------
+
+
+1.B.i) msys-build-*
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+msys-build-* scripts were derived from cygwin's "generic build script" or
+g-b-s, and share all of its shortcomings and misfeatures, as well as adding
+brand new ones.  See the CYGPORT.README file for a discussion of the problems
+with the g-b-s.  In addition to those, the msys-build-* scripts took no
+arguments and did not allow the developer to "single-step" the process.  You
+ran the script and it did EVERYTHING: from unpacking the original source, to
+patching it, configuring, building, installing, and generating the output
+packages.  If anything failed...start over.  Or hand-edit the build script to
+"skip" the earlier steps.
+
+Also, as each msys-build-* was a complete unit, there was no ready mechanism
+to ensure common behavior between them -- or to propagate new settings or
+improvements from one to the other.  Hence, the "later" msys-build-* scripts
+(in Wave 7, above) were much more full-featured than the "earlier" ones
+(in Wave 2 or so).  As new facilities were added, who would "waste" time
+back-porting them to the other -src packages...until it was time to update
+that "earlier" package for some other reason?  This scenario basically
+increased the effort required to update any package, since not only would
+it involve new porting effort for the updated source, but also the packager
+would need to update the msys-build-* with the latest-n-greatest improvements.
+Manually. Unless he didn't feel like it.
+
+Gradually, the msys-build-* scripts all began to diverge; they had a common
+ancestor and looked vaguely similar to each other, but in detail tended to
+differ greatly.
+
+
+1.B.ii) mingwPORT (as modified to generate binary pre-built packages)
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Ostensibly, a "mingwPORT" can be modified and customized solely by changing
+variable definitions in "mingwPORT.ini". This is more honor'd in the breach
+than in the observance, because it is all too tempting -- and common --
+to modify the "install" fragment or the "configure" fragment or the "build"
+fragment (mingwPORT.install, mingwPORT.configure, mingwPORT.make, respectively)
+or others.
+
+As with msys-build-*, mignwPORTs were not "single-step" capable.  Also, the
+"divergent" effect described for msys-build-* applied as well, in spades.
+While a typical msys-build-* script might be 300-400 lines of shell code
+(which is bad enough, and quite confusing to a new packager), a mingwPORT
+scriptset, in total, often ran more than 2000 lines of shell code.  How does
+/THIS/ mingwPORT differ from /THAT/ one, or from some (purely hypothetical)
+"unmodified" base version?  (The "base" version is hypothetical because ALL
+of the mingwPORTs discussed here had some modifications to support creating
+binary packages; the "true" mingwPORT scripts[12] do not possess that
+capability.
+
+Also, from a purely personal perspective, the concept of unpacking a mingwPORT
+to create:
+	foo-1.2.3/<empty, except for>
+	foo-1.2.3/mingwPORT/*.sh
+and then doing:
+	$ cd foo-1.2.3/mingwPORT/
+	$ ./mingwPORT.sh
+to unpack the original source "around" the mingwPORT subdirectory, and then
+to create a build dir that is, at some level, "beneath" the src dir instead
+of outside it, just seems awkward.  It also makes it difficult to generate
+the necessary .patch files during initial porting without extra manual
+effort (--exclude mingwPORT, also unpack the original source somewhere else,
+etc.)  And none of that manual effort is made any easier by mingwPORT's
+lack of single-step capability, nor its habit of "unapplying" patches once
+a build is complete.
+
+In summary, mingwPORT is a reasonable solution for its original purpose:
+providing build scripts to enable the end user to manually compile and
+locally install packages himself.  It is a rather awkward fit when used to
+create and maintain pre-compiled packages as part of a (binary) software
+distribution.
+
+
+1.B.iii) msysrlsbld
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+There are actually two different entities called "msysrlsbld".  The
+original[13] had been used since the beginning to build the core msys package
+and actually consists of several different files, only one of which is named
+msysrlsbld.  The other was adapted from those scripts, consolidated into a
+single file, and modified with ideas taken from msys-build-* and cygwin's
+cygport.  The new version has been used since 2007 to build the core msys
+package(s).
+
+It is delivered as a "base" script, and a separate customization file
+(msysrlsbld.ini).  The base script sources the .ini file to set variable
+values, and to optionally override various functions to customize the build
+procedure.  In additional, it allows "single-step" behavior by specifying
+which "step" to perform:
+	msysrlsbld -e prep (or compile, or install, or package, etc)
+
+This is quite an improvement over earlier methods, but had only been used to
+build a few packages other than msysCORE before a competing implementation
+called 'pkgbuild' appeared.  However, both msysrlsbld and pkgbuild suffer from
+one particular "flaw": the base script is delivered with its customization
+file in every -src package.  This has a few implications:
+
+First, as with mingwPORT and msys-build-*, it is all too tempting to modify
+the base script, if the required behavior for a particular port can't be
+implemented by a simple function override in the .ini file.  There are really
+only a small number of such "customization points", so this temptation is
+encountered -- and indulged -- often.  Thus, msysrlsbld base script suffers
+from the same divergence behavior, over time, as the the other packaging
+methods.
+
+Second, both the base script and the customization file have the same name,
+regardless of the package being built: "msysrlsbld" and "msysrlsbld.ini".
+Therefore, if two different -src packages are unpacked into the same working
+directory -- which `mingw-get install-src' will do, by default -- then the
+second build script will overwrite the first.  If the msysrlsbld base scripts
+haven't been modified, that isn't an issue...but the msysrlsbld.ini conflict
+is a significant problem.
+
+Third, as the name implies, msysrlsbld is actually specific for building MSYS
+packages. It is not well-suited to be customized as needed to build MinGW
+ones (for instance, it assumes $prefix=/usr, not C:/MinGW).
+
+
+1.B.iv) pkgbuild
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+There are actually two different implementations of this package tool, as well.
+One is simply a renamed version of the modern msysrlsbld, with some minor
+tweaks to make it more suitable for building MinGW, rather than msys, packages.
+Treat the preceeding section as applying to it.
+
+The other, pkgbuild.sh, was developed by community member LRN; it is basically
+a version of msys-build-* with "single-step" behavior added.  So, while it is
+more convenient for developers than the original msys-build-*, because things
+like this
+	pkgbuild.sh --unpack --configure
+are possible, it adds two new drawbacks.
+
+First, all customizations necessary for a given package are done by editing
+the main script (there is no "customizations" .ini file).  Thus, as with
+msys-build-*, divergencies will invariably accumulate.  Second, unlike
+msys-build-*, the file is always named "pkgbuild.sh" -- which causes the
+collision problem with two different -src packages are unpacked into the same
+working directory.
+
+
+1.B.v) other
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Several other packaging methods have been used by one maintainer or another.
+One of note involved simply adding `make' rules for the desired packages to
+the Makefile, and delivering the entire source "pre-patched" -- this avoided
+the need to tell the recipient "first apply this patch, then do 'configure;
+make; make install; make package'".
+
+However, it is often necessary to tweak a package installation before creating
+tarballs -- adding documentation that is not normally installed, or
+re-arranging and otherwise modifying the installed footprint.  Performing all
+of these tasks via new makefile rules, with their imperative rather than
+functional programming style, can be a challenge for those not versed in the
+Art of Makefile Maintenance, so this is not a suitable general purpose
+solution.
+
+Others have suggested not automating package creation at all, and advocate
+simply providing a readme file describing the necessary steps that should
+be taken manually to prepare a specific package.  However, such documentation
+invariably becomes obsolete, and eventually omits steps the "original"
+maintainer thought were obvious at the time.  Eventually, if enough time
+passes even the original maintainer can become confused.  At least with
+automated scripts, the steps can be repeated exactly, and are verified by
+the ever-useful "eat your own dogfood" technique.
+
+
+
+2. CONCEPT
+===============================================================================
+On cygwin, there exists a package building tool that has, over five years,
+been almost universally adopted by dozens of maintainers.  Its author uses
+it to maintain a separate repository of over 2000 packages ported to cygwin.
+"cygport" is a build and packaging system inspired by portions of Gentoo's
+Portage.  cygport is installed by the developer, and in much the same way
+that rpmbuild uses package-specific .spec files to build and package software
+on RPM-based systems, cygport uses package-specific .cygport files to
+control the build and packaging process.  However, most .cygport files are
+very simple; the main functionality is implemented by the cygport system
+itself -- and the SAME cygport system is used by all packages.  This makes it
+easy to deliver improvements that apply to all packages, without having to
+individually update each one.  Also, it prevents divergence, because the
+"installed" files are less likely to be modified by the user "just for this
+package".
+
+mgwport is a direct port of the cygport system to the MinGW/MSYS environment.
+It is customized to follow the appropriate conventions for building MinGW
+packages, as well as for building msys packages.
+
+The mgwport build system contains all the package-independent functions
+of the g-b-s and msys-build-* scripts, rewritten in a modern, easy-to-read
+bash syntax.  It provides commonly-used build-time functions for the package
+.mgwport (or .msysport) files, which contain only the compiling, testing, and
+installation instructions.
+
+In addition, mgwport is modularized.  Support for various build systems
+can be provided through separate mgwclasses, which are 'inherit'ed by the
+package .mgwport|.msysport as necessary. (At present only standard make-driven
+packages are supported, but cmake or qmake or other build systems are already
+supported by cygport, and could be implemented for mgwport if necessary).
+   
+The public functions and syntax (those used by a package .mgwport) are
+closer to those of Portage then of the g-b-s or msys-build-* (it is extremely
+unlikely, however, that a Gentoo ebuild will work as a .mgwport with a simple
+rename); internal syntax is still, to some degree, similar to the g-b-s.
+
+
+3. USAGE
+===============================================================================
+
+Similar to a g-b-s source package, a mgwport-generated -src tarball will
+contain the package .mgwport (or .msysport), one or two patchfiles, and the
+original source package, for example:
+
+    foo-2.3.7-1/foo-2.3.7.tar.gz
+    foo-2.3.7-1/foo-2.3.7-1.mgwport
+    foo-2.3.7-1/foo-2.3.7-1.mgw.patch
+    foo-2.3.7-1/foo-2.3.7-1.src.patch   (will be absent if package builds OOTB)
+
+GPG .sig files for any of the above may be present as well.  All these
+files must remain in the same directory.
+
+The general format of a mgwport command is:
+
+    mgwport [/path/to/]PKGNAME-VERSION-RELEASE.mgwport COMMAND [COMMAND2]
+    mgwport [/path/to/]PKGNAME-VERSION-RELEASE.msysport COMMAND [COMMAND2]
+    
+The first argument to mgwport is a path to either a .mgwport or an
+.msysport file, e.g.:
+
+    $ mgwport /usr/src/foo-2.3.7-1.mgwport COMMAND
+    $ mgwport /usr/src/foo-2.3.7-1.msysport COMMAND
+    
+Or, alternatively, if mgwport is run from the directory containing the
+.mgwport|.msysport file, then the PKGNAME-VERSION-RELEASE triplet may be
+used instead of a path:
+
+    $ cd /usr/src
+    $ mgwport foo-2.3.7-1 COMMAND
+
+(Avoid situations where both foo-2.3.7-1.mgwport and foo-2.3.7-1.msysport
+exist in the same directory).
+
+All other arguments are interpreted as a COMMAND, which may be:
+
+    prep      - create working directory, unpack the source and apply patches
+    compile   - run all compilation steps
+    test      - run the package's test suite, if one exists
+    install   - install into a DESTDIR, and run post-installation steps
+    package   - create binary and source packages
+    finish    - delete the working directory
+    all       - run all of the above, including finish
+    almostall - run all of the above, except for finish
+
+Other COMMANDs are meant primarily for maintainers:
+
+    fetch    - download the original source from the Internet
+    check    - run the testsuite
+    postinst - re-run post-installation steps
+    list     - create a file listing suitable for the release notes
+    deps     - list direct dependencies of all executables
+
+The standard arguments --help or --version may also be passed to mgwport.
+
+
+4. CREATING A MGWPORT PACKAGE
+===============================================================================
+
+See the data/sample.mgwport file, included in the MinGW package in
+${prefix}/share/mgwport, for a simple example.  Many more examples of cygports
+are available in the Cygwin Ports repository[14]; the syntax is similar enough
+to be useful in devising .mgwports of your own.  In addition, many of the
+MinGW and MSYS -src packages will soon begin to use mgwport and can provide
+useful guidance.
+
+The .mgwport file name must be in the form PKGNAME-VERSION-RELEASE.mgwport (or
+PKGNAME-VERSION-RELEASE.msysport, for building msys packages), where PKGNAME
+is the MinGW or MSYS package name (which need not be the same as the original
+source tarball name).
+
+Pure bash syntax is used.  Since a .mgwport file is itself not a
+functioning script, the sh-bang header (#!/bin/bash) should be omitted.
+
+Bash-style comments may be included, beginning with # until end-of-line;
+all comments are ignored during execution of mgwport.
+
+At a minimum, the following must be considered:
+
+SRC_URI must be defined to a wget-downloadable URL; this is also used to
+determine the original source package and assume its top directory name;
+if the latter does not conform to PKGNAME-VERSION (in mgwport syntax,
+${PN}-${PV}, or ${P}), then define SRC_DIR.
+
+During the src_* functions, be sure to cd into the correct directory. 
+The directories are defined by mgwport as follows:
+
+    S is the original source directory; you should NOT compile here.
+    B is the build directory, where all compilation should take place.
+    D is the installation directory (DESTDIR).
+    M is the MINGW-PATCHES directory (or MSYS-PATCHES, for .msysports)
+
+All compilation is handled in the src_compile() function.
+
+All autotool-based packages should have autoreconf run on them before
+running configure, in order to pull in the current MinGW or MSYS libtool,
+and to assure that patches to configure.in or Makefile.am actually take
+affect.  The defaults are autoconf2.5-2.68 and automake1.11-1.11.1; these
+may be overridden by defining WANT_AUTOCONF and WANT_AUTOMAKE to the desired
+versions; be sure to remember that libtool >= 1.5 requires that
+autoconf2.5 be used (WANT_AUTO* are not effective when building MSYS pacakges;
+the msys-dvlpr system provides only a single version of autoconf and a single
+version of automake).  The 'mgwautoreconf' command handles all this for you,
+and must be called at the beginning of the src_compile step.  (Files
+regenerated through this process will be ignored when generating the source
+patch.)
+
+The 'mgwconf' command should be run from ${B}, and it passes the following
+arguments to configure:
+
+    .mgwport                                   .msysport
+    --prefix=C:/MinGW                           /usr
+    --exec-prefix=C:/MinGW                      /usr
+    --bindir=C:/MinGW/bin                       /usr/bin
+    --libexecdir=C:/MinGW/lib                   /usr/lib
+    --sysconfdir=C:/MinGW/etc                   /etc
+    --localstatedir=C:/MinGW/var                /var
+    --datadir=C:/MinGW/share            (*)     /usr/share             (*)
+    --infodir=C:/MinGW/share/info       (*)     /usr/share/info        (*)
+    --mandir=C:/MinGW/share/man         (*)     /usr/share/man         (*)
+    --datarootdir=C:/MinGW/share        (**)    /usr/share             (**)
+    --docdir=C:/MinGW/share/doc/$P/$PV  (**)    /usr/share/doc/$P/$PV  (**)
+
+   (*) autoconf2.1-2.13 only
+   (**) autoconf2.5-2.6x only
+
+These arguments will install everything according to the MinGW/MSYS packaging
+guidelines. Additional arguments can be passed to configure as arguments of
+mgwconf, e.g.:
+
+    mgwconf --disable-static
+
+or by defining MGWCONF_ARGS:
+
+    MGWCONF_ARGS="--disable-static"
+
+Remember that, in case of conflicting arguments, that configure will accept
+only the last. Arguments to mgwconf will override the default arguments.
+
+The 'mgwmake' command calls make(1) and passes it ${MAKEOPTS} and any
+arguments it receives. By default, MAKEOPTS is defined to '-j1' --
+parallel make is problematic under MSYS.  However, if you are adventurous,
+this default can be modified by using either of the following in .mgwport:
+
+    MAKEOPTS+=" -j2"
+
+    mgwmake -j2
+
+A default src_compile() is provided, which does the following:
+
+    cd ${S}
+    mgwautoreconf
+    cd ${B}
+    mgwconf
+    mgwmake
+
+Another command that may come in useful is 'lndirs', which mirrors ${S}
+into ${B} with hardlinks.  This is primarily for use with non-autotooled 
+packages, so that they may be built in ${B} rather than ${S}.
+
+The src_test() function defines how to run the package testsuite, if
+any, during the check command.  The default is to run 'make check' if the
+package is autotool-based, otherwise 'make test' is run.  If a package
+does not conform to this rule, then a src_test() function should be
+included in the package .mgwport.  For example:
+
+    src_test() {
+        cd ${B}
+        make megatest
+    }
+    
+If a package has no testsuite and will not accept a 'make test', then
+define an empty src_test():
+    
+    src_test() {
+        :
+    }
+
+The src_install() function defines how the package is installed into
+${D}, from which various generic post-installation steps occur and the
+binary package(s) are made.
+
+The 'mgwinstall' command runs 'make install'.  mgwinstall can be run in
+two modes.  In one mode, DESTDIR=${D} is defined and it is assumed that
+the package's internal build system supports installation redirection
+using that variable.  In the other mode, prefix and all the standard
+*dir values are redefined with a preceding ${D}.  This mode is meant for
+non-automake Makefiles which don't support DESTDIR -- and is the default
+mode for MinGW packages.  DESTDIR mode is the default for MSYS packages,
+but may be overridden by setting USE_DESTDIR=0 in the .msysport.
+
+MinGW uses the non-DESTDIR mode by default because even packages which
+support DESTDIR on other platforms become confused by MinGW paths.  On
+MinGW, prefix is usually 'C:/MinGW'; preceding that with ${D} results in
+something non-sensical like '/usr/src/foo-1.2.3-1/inst/C:/MinGW', with an
+illegal ':' character in one of the "directory" names.  To use DESTDIR mode
+on MinGW, mgwport must be forced to use "/mingw" as the prefix rather than
+"C:/MinGW"; this is done by adding 'native-prefix' to the RESTRICT variable
+override list (more on that, later).  It is not recommended to use this
+RESTRICTion, without a compelling reason.
+
+In either mode, mgwinstall passes along any arguments it receives.
+
+A number of helper commands are available for manually installing files
+to various locations.  These commands have names and syntax almost
+identical to their Gentoo counterparts.  When specifying directories,
+write as if you are installing to the system; the scripts will do
+everything under ${D} for you.  Some examples:
+
+    # create directories
+    dodir /usr/share/foo/bar /usr/share/foo/misc
+
+    # install -m755 into ${D}/usr/bin
+    dobin foo.exe
+
+    # install -m644 into a custom directory
+    insinto /usr/include/foo-1.0
+    doins ${S}/src/foo.h
+
+    # install -m644 into ${D}/usr/lib
+    dolib libfoo.dll.a    
+
+If you want a generic .mgwport that could easily be used also as an
+.msysport with as few changes as possible, then use the special
+function '$(__mpflavor_prefix)' instead of "/usr" or "/mingw".  The
+complete list of path functions:
+                                   MinGW           MSYS
+        __mpflavor_prefix          /mingw          /usr
+        __mpflavor_sysconfdir      /mingw/etc      /etc
+        __mpflavor_localstatedir   /mingw/var      /var
+
+	__host_prefix              [${CS}]/mingw   [${CS}]/usr
+	__host_nprefix             C:/MinGW (*)     __host_prefix
+        __target_prefix            /mingw          /usr
+
+Where [${CS}] is the "sysroot" and is non-empty only when cross-compiling
+packages (from, say, linux to MinGW or MSYS).  It typically expands to
+"/usr/i686-pc-*/sys-root".  Typically, .mgwport and .msysports should use
+the __mpflavor_ variables, unless src_install is manipulating files in
+the sys-root for a cross-compiled package (where __host_prefix and
+__target_prefix come into play).
+
+(*) __host_nprefix ("native" prefix) differs from __host_prefix only when
+CHOST is mingw -- that is, we are building a mingw package, AND the current
+build environment is mingw -- that is, we are not cross-compiling.  In this
+situation, we want to use DOS-style paths when invoking configure, rather
+than unix-like paths such as /mingw.
+
+The default src_install() is defined simply as:
+
+    cd ${B}
+    mgwinstall
+
+Many mgwclasses also define default src_compile(), src_test(), and
+src_install() functions, which will override the aforementioned defaults.
+
+The post-install stage is run automatically after src_install(), during
+which a number of steps are run:
+    1) standard documentation is installed;
+    2) postinstall and preremove scripts are created, if necessary.
+       Note that the facility is a vestigial remnant of mgwport's
+       cygport heritage.  The MinGW installer, mingw-get, does not yet
+       support post-install (or pre-remove) scripts -- and it is likely
+       that when it does, they will not be written in bash shell syntax.
+       When this feature of mingw-get is completed, the automatic post-
+       install/pre-remove script generation mechanisms of mgwport will be
+       revisited.
+    3) binaries are stripped;
+    4) man pages are compressed.
+    5) libtool modules and pkginfo (.la and .pc files) are sanitized
+    6) Cross-compiled installation footprints are de-sysrootized.
+
+A MinGW (MSYS) README file should be included in the MINGW-PATCHES
+(MSYS-PATCHES) directory, named README.  The RELEASE_NOTES file for any
+current MinGW/MSYS package can be used as a template for this purpose.
+If desired, "list" files detailing what files in the installation should
+be included in which (sub)package may also be present in the {MINGW,MSYS}-
+PATCHES directory (more on this in the PACKAGING section, below).
+
+Most standard documentation files will be installed automatically; if
+your package has a unique doc, then you can either pass them to 'dodoc'
+during src_install(), or define DOCS as a string containing the names of
+docs you want installed.
+
+Many common postinstall/preremove script tasks are provided
+automatically, including:
+
+    1) GTK+ icon caching (gtk-update-icon-cache);
+    2) GConf schemas (gconftool-2 --(un)install-makefile-rule);
+    3) FreeDesktop.org Desktop Menu files (update-desktop-database);
+    4) FreeDesktop.org Shared Mime Info files (update-mime-database).
+
+Custom postinstall and preremove commands may be included in the
+{MINGW,MSYS}-PATCHES directory as postinstall.sh and preremove.sh -- or
+as ${PID}.postinstall and ${PID}.preremove, where PID follows the standard
+mingw-get naming convention:
+	mingw32-foo-bin.postinstall
+	mingw32-foo-dev.preremove
+or
+	msys-foo-bin.postinstall
+	msys-foo-doc.preremove
+
+These scripts should be written as stubs, without the sh-bang header.
+
+NOTE: at present, these postinstall/preremove scripts are ineffective, as
+mingw-get has no facility for executing them.  However, in anticipation of
+that feature, the ability of mgwport to generate appropriate bash fragments
+has been retained. However, it is likely that the scripting features of
+mingw-get will NOT support bash syntax; once the facility has been completed 
+the corresponding mgwport implementation will be revisited.
+
+Furthermore, even when mingw-get supports postinstall/preremove scripts, in
+whatever language, it is ALSO likely that items like "Freedesktop Shared
+MIME Info files" and "GConf Schemas" will be rather...pointless. They have
+been retained, for now, merely to minimize the difference between mgwport
+and cygport code, to temporarily ease porting efforts.
+
+
+5. PACKAGING
+===============================================================================
+
+In some rare cases, only one binary package is created from a source package,
+and includes all files installed into ${D}.  This is the default as it requires
+no special configuration, and if this applies to your package, the rest of this
+section is irrelevant.
+
+However, the typical MinGW or MSYS package group usually consists of a number
+of different components: at minimum, a -bin, -doc, and -lic component. mgwport
+makes that very easy.
+
+Let's take xz as an example.  This package provides runtime libraries and
+data, development headers and libraries, API documentation, and a set of
+utilities -- and i18n files.  In order to create separate binary packages for
+each of these, all that is necessary is to define a few variables:
+
+    PKG_NAMES="${PN} ${PN} ${PN} ${PN} liblzma liblzma"
+    PKG_COMPTYPES="bin doc lang lic dev dll-5"
+    PKG_CONTENTS[0]='--exclude=bin/*.dll bin'
+    PKG_CONTENTS[1]="share/doc share/man
+            --exclude share/doc/${PN}/${PV}/COPYING
+            --exclude share/doc/${PN}/${PV}/COPYING.GPLv2
+            --exclude share/doc/${PN}/${PV}/COPYING.GPLv3
+            --exclude share/doc/${PN}/${PV}/COPYING.LGPLv2.1"
+    PKG_CONTENTS[2]='share/locale'
+    PKG_CONTENTS[3]="share/doc/${PN}/${PV}/COPYING
+            share/doc/${PN}/${PV}/COPYING.GPLv2
+            share/doc/${PN}/${PV}/COPYING.GPLv3
+            share/doc/${PN}/${PV}/COPYING.LGPLv2.1"
+    PKG_CONTENTS[4]='include lib'
+    PKG_CONTENTS[5]="bin/*-5.dll"
+
+Or a simple non-library package may look like the following, for
+autoconf2.5:
+
+    PKG_COMPTYPES="bin doc lic"
+    PKG_CONTENTS[0]="bin share/autoconf"
+    PKG_CONTENTS[1]="--exclude share/doc/${PN}/${PV}/COPYING
+            --exclude share/doc/${PN}/${PV}/COPYINGv3
+            --exclude share/doc/${PN}/${PV}/COPYING.EXCEPTION
+            share/doc share/info share/man"
+    PKG_CONTENTS[2]="share/doc/${PN}/${PV}/COPYING
+            share/doc/${PN}/${PV}/COPYINGv3
+            share/doc/${PN}/${PV}/COPYING.EXCEPTION"
+
+PKG_NAMES is a string list of package names; the first package name must
+be ${PN}.  However, if the same package name should be used for all
+of the components, then PKG_NAMES is inferred and may be ommitted.
+
+PKG_COMPTYPES is a string list of component types; it must have the same
+length as PKG_NAMES (if present).  The contents of the two variables, plus
+the "MinGW-vs-MSYS" mode inferred from the filename of the .mgwport (or
+.msysport) file, are combined to generate the package IDs and tarnames.
+In the xz example above, these package IDs (and tarnames) are:
+
+    mingw32-xz-bin              xz-$PV-$PR-mingw32-bin.tar.lzma
+    mingw32-xz-doc              xz-$PV-$PR-mingw32-doc.tar.lzma
+    mingw32-xz-lang             xz-$PV-$PR-mingw32-lang.tar.lzma
+    mingw32-xz-lic              xz-$PV-$PR-mingw32-lic.tar.lzma
+    mingw32-liblzma-dev         liblzma-$PV-$PR-mingw32-dev.tar.lzma
+    mingw32-liblzma-dll-5       liblzma-$PV-$PR-mingw32-dll-5.tar.lzma
+
+For the autoconf2.5 example, this is:
+
+    mingw32-autoconf2.5-bin     autoconf2.5-$PV-$PR-mingw32-bin.tar.lzma
+    mingw32-autoconf2.5-doc     autoconf2.5-$PV-$PR-mingw32-doc.tar.lzma
+    mingw32-autoconf2.5-lic     autoconf2.5-$PV-$PR-mingw32-lic.tar.lzma
+
+PKG_CONTENTS[] is an array; each element (starting with 0) should be
+defined as the files to include in the corresponding binary package as
+arguments to tar(1).  Alternatively, a ${PID}.list file can be created 
+in {MINGW,MSYS}-PATCHES with the argument list, in which case the
+PKG_CONTENTS member should not be defined.
+
+mgwport will check that all PKG_* variables refer to the same number of
+packages.
+
+During the 'package' phase, the additional packages will be created within
+dist/${PN}/ for easy transfer to sf.net, e.g.:
+
+    dist/autoconf2.5/autoconf2.5-2.68-1-mingw32-bin.tar.lzma
+    dist/autoconf2.5/autoconf2.5-2.68-1-mingw32-doc.tar.lzma
+    dist/autoconf2.5/autoconf2.5-2.68-1-mingw32-lic.tar.lzma
+    dist/autoconf2.5/autoconf2.5-2.68-1-mingw32-src.tar.lzma
+
+
+6. REQUIREMENTS
+===============================================================================
+
+The following packages are required to build packages with mgwport, in
+addition to the package's own dependencies:
+
+    msys-core-bin
+    msys-bash-bin
+    msys-bzip2-bin
+    msys-coreutils-bin
+    msys-diffstat-bin
+    msys-diffutils-bin
+    msys-file-bin
+    msys-grep-bin
+    msys-gzip-bin
+    msys-lndir-bin
+    msys-make-bin
+    msys-patch-bin
+    msys-rsync-bin
+    msys-sed-bin
+    msys-tar-bin
+    msys-unzip-bin
+    msys-wget-bin
+
+For .mgwport:
+    mingw32-binutils-bin
+    mingw32-autoconf-bin     (wrapper)
+    mingw32-autoconf2.1-bin  (ac-2.13)
+    mingw32-autoconf2.5-bin  (ac-2.6x)
+    mingw32-automake-bin     (wrapper)
+    mingw32-automake1.*-bin  (am-1.nn)
+    mingw32-libtool-bin
+
+For .msysport:
+    msys-binutils-bin
+    msys-autoconf-bin     (ac-2.6x)
+    msys-automake-bin     (am-1.nn)
+    msys-libtool-bin
+
+
+7. DOWNLOAD AND INSTALLATION
+===============================================================================
+
+MinGW binary and source packages of mgwport are available via mingw-get,
+as 'mingw32-mgwport-{bin,lic,doc,src}'.  Installing mgwport with mingw-get
+will automatically install all mandatory dependencies needed for building
+MinGW packages.  If you wish to build msys packages, then you must manually
+install the relevant msys packages.
+
+mgwport is hosted on git as a branch of upstream cygport development. However,
+at present the development sources have not yet been made public; it is not
+clear how ongoing development will be handled.  Watch this space for updates.
+
+To build mgwport from git, run ./autogen.sh, then make. The following 
+MinGW/MSYS packages are required: 
+    mingw32-autoconf-bin
+    mingw32-autoconf2.5-bin
+    mingw32-automake-bin
+    mingw32-automake1.11-bin
+    msys-core-bin
+    msys-bash-bin
+    msys-coreutils-bin
+    msys-groff-bin
+    msys-help2man-bin
+    msys-sed-bin
+Upstream cygport also requires robodoc to build the code documentation; this
+is skipped in mgwport as MinGW/MSYS does not provide robodoc.
+
+
+8. SUPPORT
+===============================================================================
+
+Discussion of mgwport should occur on the mingw-users list
+<mingw-users@lists.sourceforge.net>.  Do NOT contact the cygport author
+about this fork, nor attempt to solicit help from the cygwin-ports or
+cygwin-apps mailing list.  They will point, laugh, mock, and ridicule you
+for severe netiquette violations.  And whatever you do, do NOT pester
+the author of cygport, Yaakov Selkowitz, about this fork, or he will send
+a team of ninjas to kidnap your dog and/or shave your cat.  And don't
+email the author of mgwport directly; I've got those ninjas on speed-dial,
+too.
+
+
+[1]  http://www.mingw.org/
+[2]  http://thread.gmane.org/gmane.comp.gnu.mingw.user/30805/focus=30819
+[3]  http://www.mingw.org/PackageIdentificationHOWTO
+[4]  http://thread.gmane.org/gmane.comp.gnu.mingw.devel/3412 [Wave 1]
+[5]  http://thread.gmane.org/gmane.comp.gnu.mingw.devel/3430 [Wave 2]
+[6]  http://thread.gmane.org/gmane.comp.gnu.mingw.devel/3433 [Wave 3]
+[7]  http://thread.gmane.org/gmane.comp.gnu.mingw.devel/3434 [Wave 4]
+[8]  http://thread.gmane.org/gmane.comp.gnu.mingw.devel/3437 [Wave 5]
+[9]  http://thread.gmane.org/gmane.comp.gnu.mingw.devel/3452 [Wave 6]
+[10] http://thread.gmane.org/gmane.comp.gnu.mingw.devel/3531 [Wave 7]
+[11] http://cygwin.com/setup.html#package_contents
+[12] http://mingw.cvs.sourceforge.net/viewvc/mingw/portmaker/template/
+[13] http://mingw.cvs.sourceforge.net/viewvc/mingw/msys/dvlpr/script/
+[14] http://cygwin-ports.svn.sourceforge.net/viewvc/cygwin-ports/ports/trunk/
