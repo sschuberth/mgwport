@@ -62,10 +62,6 @@ lndirs() {
 #  mgwmake [OPTIONS]
 #  DESCRIPTION
 #  Calls 'make', passing MAKEOPTS and any options given.
-#  NOTE
-#  By default, MAKEOPTS is set to use parallel make based on the number
-#  of CPU cores on the system.  If the package's Makefiles do not support
-#  parallel builds, append "-j1" to MAKEOPTS or call "mgwmake -j1".
 #****
 mgwmake() {
 	make ${MAKEOPTS} "${@}" || error "make failed"

@@ -22,7 +22,7 @@
 #
 ################################################################################
 
-#****h* Mgwclasses/tcl.mgwclass
+#****h* mgwclasses/tcl.mgwclass
 #  SYNOPSIS
 #  inherit tcl
 #  DESCRIPTION

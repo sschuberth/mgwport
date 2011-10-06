@@ -22,7 +22,7 @@
 #
 ################################################################################
 
-#****h* Mgwclasses/toolchain.mgwclass
+#****h* mgwclasses/toolchain.mgwclass
 #  SYNOPSIS
 #  TOOLCHAIN_TARGET="..."
 #  inherit toolchain

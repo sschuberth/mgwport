@@ -195,8 +195,7 @@ declare -r distdir="${workdir}/dist";
 #  Conceptually, "mgwport in its mingw flavor" is a *different product*
 #  than "mgwport in its msys flavor".  This variable is "set" depending
 #  on whether argv[1] ends in .mgwport or .msysport.  It should be set
-#  It should be set to a cpu-vendor-os triple, such as i686-pc-msys or
-#  i686-pc-mingw32.
+#  to a cpu-vendor-os triple, such as i686-pc-msys or i686-pc-mingw32.
 #****
 
 ### Now set MPFLAVOR (and mgwport filename)
@@ -482,11 +481,11 @@ fi
 #  this directory.
 #****
 
-#****d* Globals/C
+#****d* Globals/M
 #  DESCRIPTION
-#  The mgw-PATCHES directory where mgw READMEs, setup.hint files,
-#  custom postinstall scripts, and other mgw-specific files are placed
-#  before packaging.
+#  The MINGW-PATCHES or MSYS-PATCHES directory where MinGW/MSYS READMEs,
+#  setup.hint files, custom postinstall scripts, and other MinGW/MSYS-specific
+#  files are placed before packaging.
 #****
 
 #****d* Globals/D

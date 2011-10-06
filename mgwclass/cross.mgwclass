@@ -22,7 +22,7 @@
 #
 ################################################################################
 
-#****h* Mgwclasses/cross.mgwclass
+#****h* mgwclasses/cross.mgwclass
 #  SYNOPSIS
 #  CROSS_HOST="..."
 #  inherit cross

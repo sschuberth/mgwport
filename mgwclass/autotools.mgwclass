@@ -32,10 +32,8 @@
 #  assumed build system if no other is specified, and provides the default
 #  src_compile accordingly.
 #  NOTES
-#  These functions were previously part of mgwport itself, but were moved
-#  out for easier maintainability.  For backwards compatibility, this
-#  mgwclass is automatically inherit()ed, so these functions are always
-#  available as before.
+#  This mgwclass is automatically inherit()ed, so these functions are always
+#  available automatically.
 #
 #  Normally, a mgwclass can only be inherited once.  Even though this
 #  is auto-inherit()ed, it can still be manually inherit()ed once more if desired.
@@ -47,7 +45,7 @@
 #  or Module::Build.
 #  INHERITED BY
 #  No mgwclass actually inherit()s autotools.mgwclass for the reasons stated above,
-#  but the functions defined herein are used by a number of mgwclasses:
+#  but the functions defined herein are used by these mgwclasses:
 #
 #  toolchain.mgwclass
 #****
