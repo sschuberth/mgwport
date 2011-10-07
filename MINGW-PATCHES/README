@@ -35,7 +35,7 @@ Build requirements:
   mingw32-automake1.11
   msys-gawk
   msys-groff
-  #help2man-1.36.4-10
+  msys-help2man
   msys-make
   #robodoc-4.99.36-1
   msys-sed
@@ -49,21 +49,21 @@ Canonical download:
 ========================================================================
 
 Build instructions:
-  unpack mgwport-0.10.4-X-src.tar.bz2
-    if you use setup to install this src package, it will be
-	 unpacked under /usr/src automatically
-  cd /usr/src
-  mgwport ./mgwport-0.10.4-X.mgwport all
+  unpack mgwport-0.10.6-1-mingw32-src.tar.lzma
+  cd mgwport-0.10.6-X-mingw32-src
+  mgwport ./mgwport-0.10.6-X.mgwport all
 
 This will create:
-  /usr/src/mgwport-0.10.4-X-src.tar.bz2
-  /usr/src/mgwport-0.10.4-X.tar.bz2
+  mgwport-0.10.6-1-mingw32-bin.tar.lzma
+  mgwport-0.10.6-1-mingw32-lic.tar.lzma
+  mgwport-0.10.6-1-mingw32-doc.tar.lzma
+  mgwport-0.10.6-1-mingw32-src.tar.lzma
 
 ========================================================================
 
 Port Notes:
 
------ version 0.10.4-1 -----
+----- version 0.10.6-1 -----
 Version bump.
 See ChangeLog and NEWS for more information about this and past releases.
 

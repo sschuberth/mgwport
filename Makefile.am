@@ -7,7 +7,7 @@ EXTRA_DIST =					\
 	$(noinst_DATA)				\
 	mgwport.spec				\
 	MINGW-PATCHES/README		\
-	MINGW-PATCHES/setup.hint
+	MINGW-PATCHES/mingw32-mgwport.xml
 
 DISTCLEANFILES = $(PACKAGE)-$(VERSION).tar.bz2 $(PACKAGE)-$(VERSION).tar.xz
 
