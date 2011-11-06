@@ -116,7 +116,10 @@ __pkg_binpkg() {
 	# the VERY last thing before creating the tarballs.
 	case "${MPFLAVOR}" in
 	*msys*  )
-		pushd ${_RELOCDIR};
+		if inherited relocatable
+		then
+			pushd ${_RELOCDIR};
+		fi
 		inform "Rearranging install directory for MSYS"
 		# no need to use $(__mpflavor_prefix) since we are
 		# already inside an msys case. Besides, it has a
@@ -135,7 +138,11 @@ __pkg_binpkg() {
 				verbose mv "$d" usr/
 			fi
 		done
-		popd ;;
+		if inherited relocatable
+		then
+			popd
+		fi
+		;;
 	esac
 	# has a leading /, so fake it out...(includes _RELOCDIR):
 	cd .$(__mpflavor_prefix)

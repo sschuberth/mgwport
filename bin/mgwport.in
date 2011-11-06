@@ -35,13 +35,204 @@ export LC_COLLATE=C
 
 declare -r  _version=@VERSION@;
 
-declare -r _privlibdir=@pkglibdir@;
-declare -r _privdatadir=@pkgdatadir@;
-declare -r _privclassdir=@mgwclassdir@;
-declare -r _privdocdir=@docdir@;
-declare -r _privgnuconfigdir=@gnuconfigdir@;
-declare -r _sysconfdir=@sysconfdir@;
+declare _privlibdir=@pkglibdir@;
+declare _privdatadir=@pkgdatadir@;
+declare _privclassdir=@mgwclassdir@;
+declare _privdocdir=@docdir@;
+declare _privgnuconfigdir=@gnuconfigdir@;
+declare _sysconfdir=@sysconfdir@;
 
+################################################################################
+#
+# The following functions must be defined inline (rather than in external,
+# "sourced" files, because they are used to refine the location variables
+# above, which are used to locate those external files.  These relocation
+# functions were adapted from gettextize.in.
+#     func_tmpdir ()
+#     func_find_curr_installdir ()
+#     func_find_prefixes ()
+#     func_do_relocate ()
+# Global Variables:
+#     PATH_SEPARATOR
+#     IFS
+#     tmp
+#     curr_installdir
+#     orig_installdir
+#     orig_installprefix
+#     curr_installprefix
+#
+################################################################################
+
+
+################################################################################
+# func_tmpdir
+# creates a temporary directory.
+# Sets variable
+# - tmp             pathname of freshly created temporary directory
+################################################################################
+func_tmpdir ()
+{
+  # Use the environment variable TMPDIR, falling back to /tmp. This allows
+  # users to specify a different temporary directory, for example, if their
+  # /tmp is filled up or too small.
+  : ${TMPDIR=/tmp}
+  {
+    # Use the mktemp program if available. If not available, hide the error
+    # message.
+    tmp=`(umask 077 && mktemp -d "$TMPDIR/gtXXXXXX") 2>/dev/null` &&
+    test -n "$tmp" && test -d "$tmp"
+  } ||
+  {
+    # Use a simple mkdir command. It is guaranteed to fail if the directory
+    # already exists.  $RANDOM is bash specific and expands to empty in shells
+    # other than bash, ksh and zsh.  Its use does not increase security;
+    # rather, it minimizes the probability of failure in a very cluttered /tmp
+    # directory.
+    tmp=$TMPDIR/gt$$-$RANDOM
+    (umask 077 && mkdir "$tmp")
+  } ||
+  {
+    echo "$0: cannot create a temporary directory in $TMPDIR" >&2
+    { (exit 1); exit 1; }
+  }
+}
+
+
+################################################################################
+# Support for relocatability.
+################################################################################
+func_find_curr_installdir ()
+{
+  local curr_executable
+  local save_IFS
+  local dir
+  local exec_ext
+  local sed_dirname
+  local sed_linkdest
+  local lsline
+  local linkdest
+  # Determine curr_installdir, even taking into account symlinks.
+  curr_executable="$0"
+  case "$curr_executable" in
+    */* | *\\*) ;;
+    *) # Need to look in the PATH.
+      if test "${PATH_SEPARATOR+set}" != set; then
+        func_tmpdir
+        { echo "#! /bin/sh"; echo "exit 0"; } > "$tmp"/conf.sh
+        chmod +x "$tmp"/conf.sh
+        if (PATH="/nonexistent;$tmp"; conf.sh) >/dev/null 2>&1; then
+          PATH_SEPARATOR=';'
+        else
+          PATH_SEPARATOR=:
+        fi
+        rm -rf "$tmp"
+      fi
+      save_IFS="$IFS"; IFS="$PATH_SEPARATOR"
+      for dir in $PATH; do
+        IFS="$save_IFS"
+        test -z "$dir" && dir=.
+        for exec_ext in ''; do
+          if test -f "$dir/$curr_executable$exec_ext"; then
+            curr_executable="$dir/$curr_executable$exec_ext"
+            break 2
+          fi
+        done
+      done
+      IFS="$save_IFS"
+      ;;
+  esac
+  # Make absolute.
+  case "$curr_executable" in
+    /* | ?:/* | ?:\\*) ;;
+    *) curr_executable=`pwd`/"$curr_executable" ;;
+  esac
+  # Resolve symlinks.
+  sed_dirname='s,/[^/]*$,,'
+  sed_linkdest='s,^.* -> \(.*\),\1,p'
+  while : ; do
+    lsline=`LC_ALL=C ls -l "$curr_executable"`
+    case "$lsline" in
+      *" -> "*)
+        linkdest=`echo "$lsline" | sed -n -e "$sed_linkdest"`
+        case "$linkdest" in
+          /* | ?:/* | ?:\\*) curr_executable="$linkdest" ;;
+          *) curr_executable=`echo "$curr_executable" | sed -e "$sed_dirname"`/"$linkdest" ;;
+        esac ;;
+      *) break ;;
+    esac
+  done
+  curr_installdir=`echo "$curr_executable" | sed -e 's,/[^/]*$,,'`
+  # Canonicalize.
+  curr_installdir=`cd "$curr_installdir" && pwd`
+}
+func_find_prefixes ()
+{
+  local orig_last
+  local curr_last
+
+  # Compute the original/current installation prefixes by stripping the
+  # trailing directories off the original/current installation directories.
+  orig_installprefix="$orig_installdir"
+  curr_installprefix="$curr_installdir"
+  while true; do
+    orig_last=`echo "$orig_installprefix" | sed -n -e 's,^.*/\([^/]*\)$,\1,p'`
+    curr_last=`echo "$curr_installprefix" | sed -n -e 's,^.*/\([^/]*\)$,\1,p'`
+    if test -z "$orig_last" || test -z "$curr_last"; then
+      break
+    fi
+    if test "$orig_last" != "$curr_last"; then
+      break
+    fi
+    orig_installprefix=`echo "$orig_installprefix" | sed -e 's,/[^/]*$,,'`
+    curr_installprefix=`echo "$curr_installprefix" | sed -e 's,/[^/]*$,,'`
+  done
+}
+func_do_relocate () {
+  local sed_dirname='s,/[^/]*$,,'
+  local exec_prefix="@exec_prefix@"
+  local bindir="@bindir@"
+  local sysconfdir="@sysconfdir@"
+  local prev_originstpref
+  local copy_orig_installprefix
+  local copy_curr_installprefix
+
+  orig_installdir="$bindir"
+  func_find_curr_installdir # determine curr_installdir
+  func_find_prefixes
+  # Relocate the directory variables that we use.
+  _privlibdir=`echo "$_privlibdir/" | sed -e "s%^${orig_installprefix}/%${curr_installprefix}/%" | sed -e 's,/$,,'`
+  _privdatadir=`echo "$_privdatadir/" | sed -e "s%^${orig_installprefix}/%${curr_installprefix}/%" | sed -e 's,/$,,'`
+  _privclassdir=`echo "$_privclassdir/" | sed -e "s%^${orig_installprefix}/%${curr_installprefix}/%" | sed -e 's,/$,,'`
+  _privdocdir=`echo "$_privdocdir/" | sed -e "s%^${orig_installprefix}/%${curr_installprefix}/%" | sed -e 's,/$,,'`
+  _privgnuconfigdir=`echo "$_privgnuconfigdir/" | sed -e "s%^${orig_installprefix}/%${curr_installprefix}/%" | sed -e 's,/$,,'`
+
+  # Special handling for sysconfdir, because often it is not "under" the
+  # prefix.  Similar precautions would be necessary for localstatedir.
+  copy_orig_installprefix=${orig_installprefix}
+  copy_curr_installprefix=${curr_installprefix}
+  prev_originstpref=${copy_orig_installprefix}
+  while [ -n "$prev_originstpref" ] # test against prev value to allow "/"
+  do
+    prev_originstpref=${copy_orig_installprefix}
+    case "${_sysconfdir}" in
+    ${prev_originstpref}/* ) # sysconfdir is "under" prefix; standard relocation will work
+      _sysconfdir=`echo "$_sysconfdir/" | sed -e "s%^${copy_orig_installprefix}/%${copy_curr_installprefix}/%" | sed -e 's,/$,,'`
+      prev_originstpref=""
+      ;;
+    * ) # otherwise...assume sysconfdir is sibling or uncle directory
+        # of installprefix: e.g. /usr -> /etc, /usr/local -> /etc
+        copy_orig_installprefix=`echo "$copy_orig_installprefix" | sed -e "$sed_dirname"`
+        copy_curr_installprefix=`echo "$copy_curr_installprefix" | sed -e "$sed_dirname"`
+        ;;
+    esac
+  done
+}
+
+if [ "@RELOCATABLE@" == "yes" ]
+then
+  func_do_relocate
+fi
+readonly _privlibdir _privdatadir _privclassdir _privdocdir _privgnuconfigdir _sysconfdir
 
 ### import defined, pushd, popd
 source ${_privlibdir}/relocatable.mgwpart
