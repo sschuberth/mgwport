@@ -85,7 +85,13 @@ __list_deps() {
 	if __cross_compiling && check_target_tool gcc
 	then
 		tcgcclibdir=$(dirname $(${CTARGET}-gcc --print-file-name=libgcc.a))
-		tcgccsysroot=$(${CTARGET}-gcc -print-sysroot)
+		if ${CTARGET}-gcc -print-sysroot 1>/dev/null 2>/dev/null
+		then
+			tcgccsysroot=$(${CTARGET}-gcc -print-sysroot)
+		else
+			tcgccsysroot=/usr/${CTARGET}/sys-root
+		fi
+
 		PATH+=":${D}${tcgcclibdir#${D}}:${tcgcclibdir#${D}}"
 
 		# FIXME: thoroughout this section, CTARGET to get libgcc et. al. deps,

@@ -330,10 +330,19 @@ mgwautoreconf() {
 
 		ACLOCAL=${ACLOCAL:-aclocal}
 
-		local sysrootaclocaldir=$(${CC} -print-sysroot)$(__target_prefix)/share/aclocal
-		if __cross_compiling && [ -d ${sysrootaclocaldir} ]
+		if __cross_compiling
 		then
-			ACLOCAL+=" -I ${sysrootaclocaldir}"
+			local sysrootaclocaldir
+			if ${CC} -print-sysroot 1>/dev/null 2>/dev/null
+			then
+				sysrootaclocaldir=$(${CC} -print-sysroot)$(__target_prefix)/share/aclocal
+			else
+				sysrootaclocaldir=/usr/${CHOST}/sys-root/$(__target_prefix)/share/aclocal
+			fi
+			if [ -d ${sysrootaclocaldir} ]
+			then
+				ACLOCAL+=" -I ${sysrootaclocaldir}"
+			fi
 		fi
 
 #****v* mgwautoreconf/ACLOCAL_FLAGS
