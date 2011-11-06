@@ -100,6 +100,7 @@ mgwautoreconf() {
 	local config_h_in;
 	local gettext_version;
 	local sub_configure_ac;
+	local gettextdir;
 
 	__parse_aclocal_amflags() {
 		for arg in $@
@@ -184,7 +185,8 @@ mgwautoreconf() {
 
 			if $(grep -Eq '(AM_GNU_GETTEXT|AM_ICONV|AC_GGZ_INTL)' ${sub_configure_ac})
 			then
-				cp -f $(__mpflavor_prefix)/share/gettext/config.rpath ${d}/
+				gettextdir=$(which gettextize | sed -e 's|bin/gettextize||')share/gettext;
+				cp -f ${gettextdir}/config.rpath ${d}/
 				__config_set with_gnu_gettext 1
 			fi
 
