@@ -3,7 +3,8 @@ dist_pkgdata_DATA = \
 	mirrors			\
 	mono.snk		\
 	sample.mgwport	\
-	uac-manifest.in
+	uac-manifest.in \
+	autopoint.patch
 
 dist_pkgdata_SCRIPTS =	\
 	gnuconfig/config.guess		\
