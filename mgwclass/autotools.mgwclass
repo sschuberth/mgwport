@@ -431,6 +431,10 @@ mgwconf() {
 	local foo_config;
 	local prefix;
 	local nprefix;
+	local sysconfdir;
+	local nsysconfdir;
+	local localstatedir;
+	local nlocalstatedir;
 
 #****v* mgwconf/MGWCONF_SOURCE
 #  DESCRIPTION
@@ -477,19 +481,25 @@ mgwconf() {
 
 	prefix=$(__host_prefix)
 	nprefix=$(__host_nprefix)
+	sysconfdir=$(__host_sysconfdir)
+	nsysconfdir=$(__host_nsysconfdir)
+	localstatedir=$(__host_localstatedir)
+	nlocalstatedir=$(__host_nlocalstatedir)
 	if [ "${prefix}" != "${nprefix}" ] && defined _MGWPORT_RESTRICT_native_prefix_
 	then
 		inform "Using prefix=${prefix} rather than ${nprefix} by request."
 	else
 		# This is actually the default case
 		prefix="${nprefix}"
+		sysconfdir="${nsysconfdir}"
+		localstatedir="${nlocalstatedir}"
 	fi
 
 	# Set default configure arguments
 	confargs="--prefix=${prefix} --exec-prefix=${prefix} --bindir=${prefix}/bin \
 			  --sbindir=${prefix}/sbin --libexecdir=${prefix}/lib \
-			  --datadir=${prefix}/share --localstatedir=${prefix%$(__mpflavor_prefix)}$(__mpflavor_localstatedir) \
-			  --sysconfdir=${prefix%$(__mpflavor_prefix)}$(__mpflavor_sysconfdir)"
+			  --datadir=${prefix}/share --localstatedir=${localstatedir} \
+			  --sysconfdir=${sysconfdir}"
 
 	case "x${confver}" in
 		x2.6[0-9]*)

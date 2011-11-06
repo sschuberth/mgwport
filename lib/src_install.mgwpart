@@ -828,6 +828,8 @@ __prepinstalldirs() {
 #****
 mgwinstall() {
 	local inst_target prefix nprefix
+	local sysconfdir nsysconfdir
+	local localstatedir nlocalstatedir
 
 	if $(make -n -s install/fast &> /dev/null)
 	then
@@ -846,9 +848,15 @@ mgwinstall() {
 #****
 	prefix=$(__host_prefix)
 	nprefix=$(__host_nprefix)
+	sysconfdir=$(__host_sysconfdir)
+	nsysconfdir=$(__host_nsysconfdir)
+	localstatedir=$(__host_localstatedir)
+	nlocalstatedir=$(__host_nlocalstatedir)
 	if defined _MGWPORT_RESTRICT_native_prefix_
 	then
 		nprefix=$prefix
+		nsysconfdir=$sysconfdir
+		nlocalstatedir=$localstatedir
 	fi
 
 	if __arg_bool USE_DESTDIR true && test "${prefix}" == "${nprefix}"
@@ -869,8 +877,8 @@ mgwinstall() {
 			infodir=${D}${prefix}/share/info \
 			mandir=${D}${prefix}/share/man \
 			docdir=${D}${prefix}/share/doc/${PN}/${PV} \
-			localstatedir=${D}${prefix%$(__mpflavor_prefix)}$(__mpflavor_localstatedir) \
-			sysconfdir=${D}${prefix%$(__mpflavor_prefix)}$(__mpflavor_sysconfdir) \
+			localstatedir=${D}${localstatedir} \
+			sysconfdir=${D}${sysconfdir} \
 			"${@}" \
 			|| error "make install No-DESTDIR failed"
 	fi

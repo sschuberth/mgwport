@@ -259,6 +259,126 @@ __host_nprefix() {
 	echo -n ${prefix}
 }
 
+__host_sysconfdir () {
+	local sysconfdir sysroot
+	__maybe_relocate
+
+	if inherited cross
+	then
+		sysroot=${CROSS_SYSROOT}
+	else
+		sysroot=
+	fi
+
+	# FIXME: certainly other exceptions exist?
+	case ${CHOST} in
+		*-*-mingw*)       sysconfdir=${_RELOCDIR}${sysroot}/mingw/etc ;;
+		*)                sysconfdir=${_RELOCDIR}${sysroot}/etc ;;
+	esac
+
+	echo -n ${sysconfdir}
+}
+
+# Differs from __host_sysconfdir only if !cross, and host is mingw
+# In this case, we want to configure with --sysconfdir=<dos style>
+# even though for most operations, we will use the "unixish" form
+# provided by __host_sysconfdir.
+__host_nsysconfdir () {
+	local sysconfdir
+	__maybe_relocate
+
+	if inherited cross
+	then
+		__host_sysconfdir
+		return
+	else
+		case "${CHOST}" in
+			*-*-mingw*)
+				# This should always be 'native' MinGW, but add
+				# a special case to handle "cross" builds that
+				# don't declare themselves -- specifically for
+				# mgwport's own "bootstrap" test.
+				if inherited relocatable
+				then
+					# Can't use windows form of ${_RELOCDIR}/mingw/etc
+					# because it MIGHT contain spaces, depending on
+					# the value of $TMPDIR.  So, since it doesn't
+					# REALLY matter anyway, just punt:
+					sysconfdir="$(echo ${_RELOCDIR} | sed -e 's|/tmp|C:/Temp|')/MinGW/etc"
+				else
+					case $(uname -s) in
+						MINGW*) sysconfdir=$(cd /mingw && pwd -W)/etc ;;
+						*)      sysconfdir="C:/MinGW/etc" ;;
+					esac
+				fi
+				;;
+			*)	__host_sysconfdir; return ;;
+		esac
+	fi
+
+	echo -n ${sysconfdir}
+}
+
+__host_localstatedir () {
+	local localstatedir sysroot
+	__maybe_relocate
+
+	if inherited cross
+	then
+		sysroot=${CROSS_SYSROOT}
+	else
+		sysroot=
+	fi
+
+	# FIXME: certainly other exceptions exist?
+	case ${CHOST} in
+		*-*-mingw*)       localstatedir=${_RELOCDIR}${sysroot}/mingw/var;;
+		*)                localstatedir=${_RELOCDIR}${sysroot}/var ;;
+	esac
+
+	echo -n ${localstatedir}
+}
+
+# Differs from __host_localstatedir only if !cross, and host is mingw
+# In this case, we want to configure with --localstatedir=<dos style>
+# even though for most operations, we will use the "unixish" form
+# provided by __host_localstatedir.
+__host_nlocalstatedir () {
+	local localstatedir
+	__maybe_relocate
+
+	if inherited cross
+	then
+		__host_localstatedir
+		return
+	else
+		case "${CHOST}" in
+			*-*-mingw*)
+				# This should always be 'native' MinGW, but add
+				# a special case to handle "cross" builds that
+				# don't declare themselves -- specifically for
+				# mgwport's own "bootstrap" test.
+				if inherited relocatable
+				then
+					# Can't use windows form of ${_RELOCDIR}/mingw/var
+					# because it MIGHT contain spaces, depending on
+					# the value of $TMPDIR.  So, since it doesn't
+					# REALLY matter anyway, just punt:
+					localstatedir="$(echo ${_RELOCDIR} | sed -e 's|/tmp|C:/Temp|')/MinGW/var"
+				else
+					case $(uname -s) in
+						MINGW*) localstatedir=$(cd /mingw && pwd -W)/var ;;
+						*)      localstatedir="C:/MinGW/var" ;;
+					esac
+				fi
+				;;
+			*)	__host_localstatedir; return ;;
+		esac
+	fi
+
+	echo -n ${localstatedir}
+}
+
 __target_prefix() {
 	local prefix
 
@@ -322,8 +442,7 @@ __mpflavor_sysconfdir() {
 #  then the proper statedir is /mingw/var; however, if it is acting in its "msys"
 #  flavor, then the correct statedir is /var.  Note that this is conceptually
 #  distinct from items controlled by --localstatedir; it covers the "metadata"
-#  external to the target package's own build system.  Used to generalize the
-#  behavior of functions such as 'dodoc' and 'make_etc_defaults'.
+#  external to the target package's own build system.
 #****
 __mpflavor_localstatedir() {
 	local localstatedir

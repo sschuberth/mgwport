@@ -541,14 +541,18 @@ If you want a generic .mgwport that could easily be used also as an
 .msysport with as few changes as possible, then use the special
 function '$(__mpflavor_prefix)' instead of "/usr" or "/mingw".  The
 complete list of path functions:
-                                   MinGW           MSYS
-        __mpflavor_prefix          /mingw          /usr
-        __mpflavor_sysconfdir      /mingw/etc      /etc
-        __mpflavor_localstatedir   /mingw/var      /var
+                                   MinGW               MSYS
+	__mpflavor_prefix          /mingw              /usr
+	__mpflavor_sysconfdir      /mingw/etc          /etc
+	__mpflavor_localstatedir   /mingw/var          /var
 
-	__host_prefix              [${CS}]/mingw   [${CS}]/usr
-	__host_nprefix             C:/MinGW (*)     __host_prefix
-        __target_prefix            /mingw          /usr
+	__host_prefix              [${CS}]/mingw       [${CS}]/usr
+	__host_nprefix             C:/MinGW (*)        __host_prefix
+	__host_sysconfdir          [${CS}]/mingw/etc   [${CS}]/etc
+	__host_nsysconfdir         C:/MinGW/etc (*)    __host_sysconfdir
+	__host_localstatedir       [${CS}]/mingw/var   [${CS}]/var
+	__host_nlocalstatedir      C:/MinGW/var (*)    __host_localstatedir
+	__target_prefix            /mingw              /usr
 
 Where [${CS}] is the "sysroot" and is non-empty only when cross-compiling
 packages (from, say, linux to MinGW or MSYS).  It typically expands to
@@ -561,7 +565,8 @@ __target_prefix come into play).
 CHOST is mingw -- that is, we are building a mingw package, AND the current
 build environment is mingw -- that is, we are not cross-compiling.  In this
 situation, we want to use DOS-style paths when invoking configure, rather
-than unix-like paths such as /mingw.
+than unix-like paths such as /mingw. Similar rules apply for sysconfdir
+and localstatedir.
 
 The default src_install() is defined simply as:
 
