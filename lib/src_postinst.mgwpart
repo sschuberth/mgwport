@@ -464,7 +464,7 @@ __prepman() {
 		for manpage in $(find ${D}$(__host_prefix)/share/man -type f ! -name '*.gz' ! -name '*.bz2' ! -name '*.lzma')
 		do
 			echo "        ${manpage##*/}";
-			gzip -q ${manpage};
+			gzip -q -n9 ${manpage};
 		done
 	fi
 }
