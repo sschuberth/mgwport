@@ -54,7 +54,7 @@ fetch() {
 		fi
 	elif check_prog curl
 	then
-		if curl -k --url ${uri} -o ${urifile}.tmp
+		if curl -L -k --url ${uri} -o ${urifile}.tmp
 		then
 			mv -f ${urifile}.tmp ${urifile}
 		else
