@@ -43,16 +43,7 @@ fetch() {
 	urifile=${uri%\?*};
 	urifile=${urifile##*/};
 
-	if check_prog wget
-	then
-		if wget --tries=10 --no-check-certificate -O ${urifile}.tmp ${uri}
-		then
-			mv -f ${urifile}.tmp ${urifile}
-		else
-			rm -f ${urifile}.tmp
-			error "wget ${uri} failed"
-		fi
-	elif check_prog curl
+	if check_prog curl
 	then
 		if curl --retry 10 -L -k --url ${uri} -o ${urifile}.tmp
 		then
@@ -60,6 +51,15 @@ fetch() {
 		else
 			rm -f ${urifile}.tmp
 			error "curl ${uri} failed"
+		fi
+	elif check_prog wget
+	then
+		if wget --tries=10 --no-check-certificate -O ${urifile}.tmp ${uri}
+		then
+			mv -f ${urifile}.tmp ${urifile}
+		else
+			rm -f ${urifile}.tmp
+			error "wget ${uri} failed"
 		fi
 	else
 		error "Either wget or curl are required to fetch sources.";
