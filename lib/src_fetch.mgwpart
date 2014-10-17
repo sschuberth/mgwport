@@ -45,7 +45,7 @@ fetch() {
 
 	if check_prog wget
 	then
-		if wget --no-check-certificate -O ${urifile}.tmp ${uri}
+		if wget --tries=10 --no-check-certificate -O ${urifile}.tmp ${uri}
 		then
 			mv -f ${urifile}.tmp ${urifile}
 		else
@@ -54,7 +54,7 @@ fetch() {
 		fi
 	elif check_prog curl
 	then
-		if curl -L -k --url ${uri} -o ${urifile}.tmp
+		if curl --retry 10 -L -k --url ${uri} -o ${urifile}.tmp
 		then
 			mv -f ${urifile}.tmp ${urifile}
 		else
