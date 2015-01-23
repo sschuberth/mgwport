@@ -464,7 +464,7 @@ __prepman() {
 		for manpage in $(find ${D}$(__host_prefix)/share/man -type f ! -name '*.gz' ! -name '*.bz2' ! -name '*.lzma')
 		do
 			echo "        ${manpage##*/}";
-			gzip -q ${manpage};
+			gzip -q -n -9 ${manpage};
 		done
 	fi
 }
@@ -562,7 +562,7 @@ __prepstrip() {
 			strip="${CHOST}-strip"
 		elif size -f ${exe} &>/dev/null
 		then
-			strip="strip"
+			strip="/mingw/bin/strip --enable-deterministic-archives"
 		else
 			# sometimes .exe will be appended where it does not belong
 			case ${exe} in *.exe)
